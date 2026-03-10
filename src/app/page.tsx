@@ -92,8 +92,8 @@ export default function HomePage() {
           <h2 className="text-lg font-bold text-gray-900 mb-4">เหตุการณ์ตัวอย่าง</h2>
           <div className="space-y-3">
             {[
-              { id: 'INC-2024-FLOOD-001', label: 'น้ำท่วมภาคเหนือ 2567' },
-              { id: 'INC-2024-FIRE-002', label: 'ไฟป่าภาคเหนือ 2567' },
+              { id: 'INC-2026-001', label: 'อุทกภัยกรุงเทพ 2569' },
+              { id: 'INC-2026-002', label: 'พายุภาคใต้ 2569' },
             ].map((inc) => (
               <div key={inc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded font-mono">Demo</span>

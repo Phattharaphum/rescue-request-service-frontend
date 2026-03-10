@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# rescue-request-service-frontend
 
-## Getting Started
+ระบบเดโม่ Next.js สำหรับ Rescue Request Service - ระบบจัดการคำขอช่วยเหลือผู้ประสบภัย
 
-First, run the development server:
+## เทคโนโลยีที่ใช้
+
+- **Next.js 16** (App Router)
+- **TypeScript**
+- **Tailwind CSS v4**
+- **lucide-react** - ไอคอน
+- **React Hook Form + Zod** - ฟอร์มและ validation
+- **TanStack Query** - data fetching
+- **Google Sans** - ฟอนต์หลัก
+
+## การติดตั้ง
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## การตั้งค่า Environment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local
+# แก้ไข NEXT_PUBLIC_API_BASE_URL ตามความต้องการ
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## การรัน
 
-## Learn More
+```bash
+# Development
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+# Production build
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## โครงสร้างโปรเจค
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+  app/           # Next.js App Router pages
+  components/    # React components
+    ui/          # UI primitives
+    shared/      # Shared components
+    layout/      # Layout components
+    citizen/     # ภาคประชาชน components
+    staff/       # ภาคเจ้าหน้าที่ components
+  lib/           # Utilities and API
+    api/         # API client and endpoints
+    config/      # Configuration
+    hooks/       # Custom React hooks
+    schemas/     # Zod validation schemas
+    utils/       # Utility functions
+  types/         # TypeScript types
+```
 
-## Deploy on Vercel
+## ฟีเจอร์หลัก
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### ภาคประชาชน
+- แจ้งคำขอช่วยเหลือ (`/citizen/request`)
+- ตรวจสอบสถานะด้วยเบอร์โทร + tracking code (`/citizen/track`)
+- ดูสถานะคำขอ (`/citizen/status/[requestId]`)
+- ส่งข้อมูลอัปเดตเพิ่มเติม (`/citizen/status/[requestId]/updates`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### ภาคเจ้าหน้าที่
+- แผงควบคุมภาพรวม (`/staff`)
+- รายการคำขอตาม incident (`/staff/incidents`)
+- รายละเอียดคำขอ (`/staff/requests/[requestId]`)
+- แก้ไขข้อมูล (`/staff/requests/[requestId]/edit`)
+- ประวัติสถานะ (`/staff/requests/[requestId]/events`)
+- สถานะปัจจุบัน (`/staff/requests/[requestId]/current`)
+- ข้อมูล Idempotency (`/staff/requests/[requestId]/idempotency`)
+
+### Pub/Sub Events
+- แสดง event stream จาก SNS (`/pubsub`)
