@@ -40,7 +40,8 @@ async function request<T>(
   body?: unknown,
   options?: RequestOptions,
 ): Promise<T> {
-  const url = `${API_BASE_URL}${path}${buildQueryString(options?.params)}`;
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+  const url = `${API_BASE_URL}${normalizedPath}${buildQueryString(options?.params)}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

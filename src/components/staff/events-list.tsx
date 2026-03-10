@@ -1,13 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { Timeline } from '@/components/shared/timeline';
 import { LoadingState } from '@/components/shared/loading-state';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -29,7 +26,7 @@ function EventDetails({ event }: { event: StatusEvent }) {
           <span className="text-gray-400">จาก:</span>
           <StatusBadge status={event.previousStatus} size="sm" />
           <span className="text-gray-400">→</span>
-          <StatusBadge status={event.status} size="sm" />
+          <StatusBadge status={event.newStatus} size="sm" />
         </div>
       )}
       {event.changedBy && (
@@ -73,7 +70,7 @@ export function EventsList({ requestId }: EventsListProps) {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['events', requestId, order, cursor],
-    queryFn: () => listRequestEvents(requestId, { cursor, limit: 10 }),
+    queryFn: () => listRequestEvents(requestId, { cursor, limit: 10, order }),
   });
 
   const handleNext = () => {
@@ -94,15 +91,6 @@ export function EventsList({ requestId }: EventsListProps) {
     setCursor(undefined);
     setPrevCursors([]);
   };
-
-  const timelineItems = (data?.items ?? []).map((event) => ({
-    id: event.eventId,
-    title: `v${event.version} — ${event.status}`,
-    description: undefined,
-    timestamp: `${formatDateTime(event.createdAt)} (${formatRelativeTime(event.createdAt)})`,
-    color: STATUS_COLOR_MAP[event.status] ?? 'bg-gray-100 text-gray-600',
-    event,
-  }));
 
   return (
     <Card>
@@ -144,20 +132,20 @@ export function EventsList({ requestId }: EventsListProps) {
                       />
                     )}
                     <div
-                      className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full shrink-0 text-xs font-bold ${STATUS_COLOR_MAP[event.status] ?? 'bg-gray-100 text-gray-600'}`}
+                      className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full shrink-0 text-xs font-bold ${STATUS_COLOR_MAP[event.newStatus] ?? 'bg-gray-100 text-gray-600'}`}
                     >
                       {event.version}
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
                       <div className="flex items-center gap-2">
-                        <StatusBadge status={event.status} size="sm" />
+                        <StatusBadge status={event.newStatus} size="sm" />
                         <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">
-                          {formatRelativeTime(event.createdAt)}
+                          {formatRelativeTime(event.occurredAt)}
                         </span>
                       </div>
                       <EventDetails event={event} />
                       <time className="mt-1 block text-xs text-gray-400">
-                        {formatDateTime(event.createdAt)}
+                        {formatDateTime(event.occurredAt)}
                       </time>
                     </div>
                   </li>
@@ -178,3 +166,4 @@ export function EventsList({ requestId }: EventsListProps) {
     </Card>
   );
 }
+

@@ -1,8 +1,18 @@
 import { z } from 'zod';
 import { phoneSchema } from '@/lib/schemas/common';
 
-const REQUEST_TYPES = ['MEDICAL', 'RESCUE', 'EVACUATION', 'SUPPLY', 'OTHER'] as const;
-const SOURCE_CHANNELS = ['WEB', 'MOBILE', 'CALL_CENTER', 'LINE', 'OTHER'] as const;
+const REQUEST_TYPES = [
+  'FLOOD',
+  'FIRE',
+  'EARTHQUAKE',
+  'LANDSLIDE',
+  'STORM',
+  'MEDICAL',
+  'EVACUATION',
+  'SUPPLY',
+  'OTHER',
+] as const;
+const SOURCE_CHANNELS = ['WEB', 'MOBILE', 'LINE', 'PHONE', 'WALK_IN', 'OTHER'] as const;
 const UPDATE_TYPES = [
   'NOTE',
   'LOCATION_DETAILS',

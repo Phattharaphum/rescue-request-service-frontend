@@ -1,9 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,8 +16,12 @@ import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 import { INCIDENTS } from '@/lib/config/incidents';
 
 const REQUEST_TYPE_OPTIONS = [
+  { value: 'FLOOD', label: 'น้ำท่วม' },
+  { value: 'FIRE', label: 'ไฟไหม้' },
+  { value: 'EARTHQUAKE', label: 'แผ่นดินไหว' },
+  { value: 'LANDSLIDE', label: 'ดินถล่ม' },
+  { value: 'STORM', label: 'พายุ' },
   { value: 'MEDICAL', label: 'การแพทย์/ผู้ป่วย' },
-  { value: 'RESCUE', label: 'ช่วยเหลือ/กู้ภัย' },
   { value: 'EVACUATION', label: 'อพยพ' },
   { value: 'SUPPLY', label: 'เสบียง/สิ่งของ' },
   { value: 'OTHER', label: 'อื่นๆ' },
@@ -27,8 +30,9 @@ const REQUEST_TYPE_OPTIONS = [
 const SOURCE_CHANNEL_OPTIONS = [
   { value: 'WEB', label: 'เว็บไซต์' },
   { value: 'MOBILE', label: 'แอปมือถือ' },
-  { value: 'CALL_CENTER', label: 'ศูนย์โทรศัพท์' },
   { value: 'LINE', label: 'LINE' },
+  { value: 'PHONE', label: 'โทรศัพท์' },
+  { value: 'WALK_IN', label: 'เดินทางมาด้วยตนเอง' },
   { value: 'OTHER', label: 'อื่นๆ' },
 ];
 
@@ -268,3 +272,4 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
     </form>
   );
 }
+

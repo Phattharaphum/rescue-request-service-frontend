@@ -8,9 +8,24 @@ export type RequestStatus =
   | 'RESOLVED'
   | 'CANCELLED';
 
-export type RequestType = 'MEDICAL' | 'RESCUE' | 'EVACUATION' | 'SUPPLY' | 'OTHER';
+export type RequestType =
+  | 'FLOOD'
+  | 'FIRE'
+  | 'EARTHQUAKE'
+  | 'LANDSLIDE'
+  | 'STORM'
+  | 'MEDICAL'
+  | 'EVACUATION'
+  | 'SUPPLY'
+  | 'OTHER';
 
-export type SourceChannel = 'WEB' | 'MOBILE' | 'CALL_CENTER' | 'LINE' | 'OTHER';
+export type SourceChannel =
+  | 'WEB'
+  | 'MOBILE'
+  | 'LINE'
+  | 'PHONE'
+  | 'WALK_IN'
+  | 'OTHER';
 
 export type UpdateType =
   | 'NOTE'
@@ -20,8 +35,6 @@ export type UpdateType =
   | 'CONTACT_INFO';
 
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-
-// ─── Create Request ───────────────────────────────────────────────────────────
 
 export interface RescueRequestCreateInput {
   incidentId: string;
@@ -33,12 +46,12 @@ export interface RescueRequestCreateInput {
   contactName: string;
   contactPhone: string;
   sourceChannel: SourceChannel;
-  specialNeeds?: string;
-  locationDetails?: string;
-  province?: string;
-  district?: string;
-  subdistrict?: string;
-  addressLine?: string;
+  specialNeeds?: string | null;
+  locationDetails?: string | null;
+  province?: string | null;
+  district?: string | null;
+  subdistrict?: string | null;
+  addressLine?: string | null;
 }
 
 export interface RescueRequestCreateResponse {
@@ -47,8 +60,6 @@ export interface RescueRequestCreateResponse {
   status: RequestStatus;
   submittedAt: string;
 }
-
-// ─── Citizen Tracking ────────────────────────────────────────────────────────
 
 export interface CitizenTrackingLookupInput {
   contactPhone: string;
@@ -63,11 +74,28 @@ export interface CitizenTrackingLookupResponse {
 export interface CitizenStatusLocation {
   latitude: number;
   longitude: number;
-  locationDetails?: string;
-  province?: string;
-  district?: string;
-  subdistrict?: string;
-  addressLine?: string;
+  locationDetails?: string | null;
+  province?: string | null;
+  district?: string | null;
+  subdistrict?: string | null;
+  addressLine?: string | null;
+}
+
+export interface StatusEvent {
+  eventId: string;
+  requestId: string;
+  previousStatus?: RequestStatus | null;
+  newStatus: RequestStatus;
+  changedBy?: string | null;
+  changedByRole?: string | null;
+  changeReason?: string | null;
+  meta?: Record<string, unknown> | null;
+  priorityScore?: number | null;
+  priorityLevel?: PriorityLevel | null;
+  responderUnitId?: string | null;
+  note?: string | null;
+  version: number;
+  occurredAt: string;
 }
 
 export interface CitizenStatusResponse {
@@ -75,27 +103,25 @@ export interface CitizenStatusResponse {
   incidentId: string;
   requestType: RequestType;
   status: RequestStatus;
-  statusMessage: string;
-  nextSuggestedAction: string;
-  description: string;
-  peopleCount: number;
-  specialNeeds?: string;
-  submittedAt: string;
-  lastCitizenUpdateAt?: string;
-  contactName: string;
-  contactPhoneMasked: string;
+  statusMessage?: string | null;
+  nextSuggestedAction?: string | null;
+  description?: string | null;
+  peopleCount?: number | null;
+  specialNeeds?: string | null;
+  submittedAt?: string | null;
+  lastCitizenUpdateAt?: string | null;
+  contactName?: string | null;
+  contactPhoneMasked?: string | null;
   location: CitizenStatusLocation;
-  priorityLevel: PriorityLevel;
-  assignedUnitId?: string;
-  assignedAt?: string;
-  latestNote?: string;
-  lastUpdatedAt: string;
+  priorityLevel?: PriorityLevel | null;
+  assignedUnitId?: string | null;
+  assignedAt?: string | null;
+  latestNote?: string | null;
+  lastUpdatedAt?: string | null;
   stateVersion: number;
-  latestEvent?: StatusEvent;
+  latestEvent?: StatusEvent | null;
   recentEvents: StatusEvent[];
 }
-
-// ─── Citizen Updates ─────────────────────────────────────────────────────────
 
 export interface CitizenUpdateCreateInput {
   trackingCode: string;
@@ -103,38 +129,23 @@ export interface CitizenUpdateCreateInput {
   updatePayload: Record<string, unknown>;
 }
 
+export interface CitizenUpdateCreateResponse {
+  updateId: string;
+  requestId: string;
+  updateType: UpdateType;
+  createdAt: string;
+}
+
 export interface CitizenUpdateItem {
-  id: string;
+  updateId: string;
   requestId: string;
   updateType: UpdateType;
   updatePayload: Record<string, unknown>;
+  citizenAuthMethod?: string;
   createdAt: string;
-  createdBy?: string;
 }
 
 export type CitizenUpdateListResponse = PaginatedResponse<CitizenUpdateItem>;
-
-// ─── Status Events ───────────────────────────────────────────────────────────
-
-export interface StatusEvent {
-  eventId: string;
-  requestId: string;
-  incidentId: string;
-  version: number;
-  status: RequestStatus;
-  previousStatus?: RequestStatus;
-  changedBy: string;
-  changedByRole: string;
-  changeReason?: string;
-  responderUnitId?: string;
-  note?: string;
-  priorityScore?: number;
-  priorityLevel?: PriorityLevel;
-  meta?: Record<string, unknown>;
-  createdAt: string;
-}
-
-// ─── Request Master / Snapshot ───────────────────────────────────────────────
 
 export interface RescueRequestMaster {
   requestId: string;
@@ -142,19 +153,19 @@ export interface RescueRequestMaster {
   requestType: RequestType;
   description: string;
   peopleCount: number;
-  specialNeeds?: string;
+  specialNeeds?: string | null;
   latitude: number;
   longitude: number;
   contactName: string;
   contactPhone: string;
   sourceChannel: SourceChannel;
-  locationDetails?: string;
-  province?: string;
-  district?: string;
-  subdistrict?: string;
-  addressLine?: string;
+  locationDetails?: string | null;
+  province?: string | null;
+  district?: string | null;
+  subdistrict?: string | null;
+  addressLine?: string | null;
   submittedAt: string;
-  lastCitizenUpdateAt?: string;
+  lastCitizenUpdateAt?: string | null;
 }
 
 export interface CurrentStateSnapshot {
@@ -163,12 +174,12 @@ export interface CurrentStateSnapshot {
   lastEventId: string;
   stateVersion: number;
   status: RequestStatus;
-  priorityScore?: number;
-  priorityLevel?: PriorityLevel;
-  assignedUnitId?: string;
-  assignedAt?: string;
-  latestNote?: string;
-  lastUpdatedBy?: string;
+  priorityScore?: number | null;
+  priorityLevel?: PriorityLevel | null;
+  assignedUnitId?: string | null;
+  assignedAt?: string | null;
+  latestNote?: string | null;
+  lastUpdatedBy?: string | null;
   lastUpdatedAt: string;
 }
 
@@ -180,16 +191,14 @@ export interface RequestDetailResponse {
   citizenUpdates?: CitizenUpdateItem[];
 }
 
-// ─── Status Transitions ──────────────────────────────────────────────────────
-
 export interface StatusTransitionResponse {
+  eventId: string;
   requestId: string;
+  previousStatus: RequestStatus;
   newStatus: RequestStatus;
-  stateVersion: number;
-  transitionedAt: string;
+  version: number;
+  occurredAt: string;
 }
-
-// ─── Patch Request ───────────────────────────────────────────────────────────
 
 export interface PatchRequestInput {
   description?: string;
@@ -201,10 +210,8 @@ export interface PatchRequestInput {
 
 export interface PatchRequestResponse {
   requestId: string;
-  updated: Partial<RescueRequestMaster>;
+  updated: string[];
 }
-
-// ─── Incident Requests ───────────────────────────────────────────────────────
 
 export interface IncidentRequestSummary {
   requestId: string;
@@ -212,28 +219,26 @@ export interface IncidentRequestSummary {
   status: RequestStatus;
   requestType: RequestType;
   contactName: string;
-  peopleCount: number;
-  priorityLevel?: PriorityLevel;
-  assignedUnitId?: string;
+  peopleCount?: number;
+  priorityLevel?: PriorityLevel | null;
+  assignedUnitId?: string | null;
   submittedAt: string;
-  lastUpdatedAt: string;
+  lastUpdatedAt?: string;
 }
 
 export type IncidentRequestsResponse = PaginatedResponse<IncidentRequestSummary>;
 
-// ─── Idempotency ─────────────────────────────────────────────────────────────
-
 export interface IdempotencyRecordResponse {
-  keyHash: string;
-  requestId?: string;
-  status: string;
-  response?: Record<string, unknown>;
-  requestFingerprint?: string;
+  idempotencyKeyHash: string;
+  operationName: string;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
   createdAt: string;
-  expiresAt?: string;
+  updatedAt: string;
+  resultResourceId?: string | null;
+  responseStatusCode?: number;
+  responseBody?: Record<string, unknown>;
+  requestFingerprint?: string;
 }
-
-// ─── Append Event ────────────────────────────────────────────────────────────
 
 export interface AppendEventInput {
   newStatus: RequestStatus;

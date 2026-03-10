@@ -6,7 +6,7 @@ import {
   CitizenTrackingLookupResponse,
   CitizenStatusResponse,
   CitizenUpdateCreateInput,
-  CitizenUpdateItem,
+  CitizenUpdateCreateResponse,
   CitizenUpdateListResponse,
   RequestDetailResponse,
   PatchRequestInput,
@@ -20,106 +20,127 @@ import {
 } from '@/types/rescue';
 import { PaginatedResponse } from '@/types/api';
 
-// ─── Shared param types ───────────────────────────────────────────────────────
-
 interface CursorParams {
   cursor?: string;
   limit?: number;
 }
 
 interface RequestDetailParams extends CursorParams {
-  includeUpdates?: boolean;
   includeEvents?: boolean;
+  includeCitizenUpdates?: boolean;
+  // Backward-compatible alias used by existing callers.
+  includeUpdates?: boolean;
+}
+
+interface CitizenUpdatesParams extends CursorParams {
+  since?: string;
+}
+
+interface RequestEventsParams extends CursorParams {
+  sinceVersion?: number;
+  order?: 'ASC' | 'DESC';
 }
 
 interface IncidentRequestsParams extends CursorParams {
   status?: string;
-  requestType?: string;
-  priorityLevel?: string;
-  assignedUnitId?: string;
-  order?: 'ASC' | 'DESC';
 }
 
 interface IdempotencyParams {
-  incidentId?: string;
+  includeResponse?: boolean;
+  includeRequestFingerprint?: boolean;
 }
 
-// ─── Citizen endpoints ────────────────────────────────────────────────────────
+function buildMutationHeaders(
+  idempotencyKey?: string,
+  ifMatch?: string,
+): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (idempotencyKey) headers['X-Idempotency-Key'] = idempotencyKey;
+  if (ifMatch) headers['If-Match'] = ifMatch;
+  return headers;
+}
 
 export function createRescueRequest(
   input: RescueRequestCreateInput,
-  idempotencyKey: string,
+  idempotencyKey?: string,
 ): Promise<RescueRequestCreateResponse> {
-  return apiClient.post<RescueRequestCreateResponse>('/requests', input, {
-    headers: { 'Idempotency-Key': idempotencyKey },
+  return apiClient.post<RescueRequestCreateResponse>('/rescue-requests', input, {
+    headers: buildMutationHeaders(idempotencyKey),
   });
 }
 
 export function lookupTracking(
   input: CitizenTrackingLookupInput,
 ): Promise<CitizenTrackingLookupResponse> {
-  return apiClient.post<CitizenTrackingLookupResponse>('/requests/lookup', input);
+  return apiClient.post<CitizenTrackingLookupResponse>(
+    '/citizen/tracking/lookup',
+    input,
+  );
 }
 
 export function getCitizenStatus(requestId: string): Promise<CitizenStatusResponse> {
-  return apiClient.get<CitizenStatusResponse>(`/requests/${requestId}/citizen-status`);
+  return apiClient.get<CitizenStatusResponse>(
+    `/citizen/rescue-requests/${requestId}/status`,
+  );
 }
 
 export function createCitizenUpdate(
   requestId: string,
   input: CitizenUpdateCreateInput,
-  idempotencyKey: string,
-): Promise<CitizenUpdateItem> {
-  return apiClient.post<CitizenUpdateItem>(
-    `/requests/${requestId}/citizen-updates`,
+  idempotencyKey?: string,
+): Promise<CitizenUpdateCreateResponse> {
+  return apiClient.post<CitizenUpdateCreateResponse>(
+    `/citizen/rescue-requests/${requestId}/updates`,
     input,
-    { headers: { 'Idempotency-Key': idempotencyKey } },
+    { headers: buildMutationHeaders(idempotencyKey) },
   );
 }
 
 export function listCitizenUpdates(
   requestId: string,
-  params?: CursorParams,
+  params?: CitizenUpdatesParams,
 ): Promise<CitizenUpdateListResponse> {
   return apiClient.get<CitizenUpdateListResponse>(
-    `/requests/${requestId}/citizen-updates`,
+    `/citizen/rescue-requests/${requestId}/updates`,
     { params: params as Record<string, string | number | boolean | undefined> },
   );
 }
-
-// ─── Staff / detail endpoints ─────────────────────────────────────────────────
 
 export function getRequestDetail(
   requestId: string,
   params?: RequestDetailParams,
 ): Promise<RequestDetailResponse> {
-  return apiClient.get<RequestDetailResponse>(`/requests/${requestId}`, {
-    params: params as Record<string, string | number | boolean | undefined>,
+  const query = {
+    ...params,
+    includeUpdates: undefined,
+    includeCitizenUpdates:
+      params?.includeCitizenUpdates ?? params?.includeUpdates,
+  };
+
+  return apiClient.get<RequestDetailResponse>(`/rescue-requests/${requestId}`, {
+    params: query as Record<string, string | number | boolean | undefined>,
   });
 }
 
 export function patchRequest(
   requestId: string,
   input: PatchRequestInput,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<PatchRequestResponse> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
-  return apiClient.patch<PatchRequestResponse>(`/requests/${requestId}`, input, {
-    headers,
-  });
+  return apiClient.patch<PatchRequestResponse>(
+    `/rescue-requests/${requestId}`,
+    input,
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
+  );
 }
 
 export function listRequestEvents(
   requestId: string,
-  params?: CursorParams,
+  params?: RequestEventsParams,
 ): Promise<PaginatedResponse<StatusEvent>> {
   return apiClient.get<PaginatedResponse<StatusEvent>>(
-    `/requests/${requestId}/events`,
+    `/rescue-requests/${requestId}/events`,
     { params: params as Record<string, string | number | boolean | undefined> },
   );
 }
@@ -127,21 +148,18 @@ export function listRequestEvents(
 export function appendStatusEvent(
   requestId: string,
   input: AppendEventInput,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<StatusEvent> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
-  return apiClient.post<StatusEvent>(`/requests/${requestId}/events`, input, {
-    headers,
-  });
+  return apiClient.post<StatusEvent>(
+    `/rescue-requests/${requestId}/events`,
+    input,
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
+  );
 }
 
 export function getCurrentState(requestId: string): Promise<CurrentStateSnapshot> {
-  return apiClient.get<CurrentStateSnapshot>(`/requests/${requestId}/state`);
+  return apiClient.get<CurrentStateSnapshot>(`/rescue-requests/${requestId}/current`);
 }
 
 export function listIncidentRequests(
@@ -149,7 +167,7 @@ export function listIncidentRequests(
   params?: IncidentRequestsParams,
 ): Promise<IncidentRequestsResponse> {
   return apiClient.get<IncidentRequestsResponse>(
-    `/incidents/${incidentId}/requests`,
+    `/incidents/${incidentId}/rescue-requests`,
     { params: params as Record<string, string | number | boolean | undefined> },
   );
 }
@@ -158,99 +176,75 @@ export function getIdempotencyRecord(
   keyHash: string,
   params?: IdempotencyParams,
 ): Promise<IdempotencyRecordResponse> {
-  return apiClient.get<IdempotencyRecordResponse>(`/idempotency/${keyHash}`, {
-    params: params as Record<string, string | number | boolean | undefined>,
-  });
+  return apiClient.get<IdempotencyRecordResponse>(
+    `/idempotency-keys/${keyHash}`,
+    {
+      params: params as Record<string, string | number | boolean | undefined>,
+    },
+  );
 }
-
-// ─── Transition shortcuts ─────────────────────────────────────────────────────
 
 export function triageRequest(
   requestId: string,
   input: Omit<AppendEventInput, 'newStatus'>,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<StatusTransitionResponse> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
   return apiClient.post<StatusTransitionResponse>(
-    `/requests/${requestId}/triage`,
+    `/rescue-requests/${requestId}/triage`,
     input,
-    { headers },
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
   );
 }
 
 export function assignRequest(
   requestId: string,
   input: Omit<AppendEventInput, 'newStatus'>,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<StatusTransitionResponse> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
   return apiClient.post<StatusTransitionResponse>(
-    `/requests/${requestId}/assign`,
+    `/rescue-requests/${requestId}/assign`,
     input,
-    { headers },
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
   );
 }
 
 export function startRequest(
   requestId: string,
   input: Omit<AppendEventInput, 'newStatus'>,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<StatusTransitionResponse> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
   return apiClient.post<StatusTransitionResponse>(
-    `/requests/${requestId}/start`,
+    `/rescue-requests/${requestId}/start`,
     input,
-    { headers },
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
   );
 }
 
 export function resolveRequest(
   requestId: string,
   input: Omit<AppendEventInput, 'newStatus'>,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<StatusTransitionResponse> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
   return apiClient.post<StatusTransitionResponse>(
-    `/requests/${requestId}/resolve`,
+    `/rescue-requests/${requestId}/resolve`,
     input,
-    { headers },
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
   );
 }
 
 export function cancelRequest(
   requestId: string,
   input: Omit<AppendEventInput, 'newStatus'>,
-  idempotencyKey: string,
+  idempotencyKey?: string,
   ifMatch?: string,
 ): Promise<StatusTransitionResponse> {
-  const headers: Record<string, string> = {
-    'Idempotency-Key': idempotencyKey,
-  };
-  if (ifMatch) headers['If-Match'] = ifMatch;
-
   return apiClient.post<StatusTransitionResponse>(
-    `/requests/${requestId}/cancel`,
+    `/rescue-requests/${requestId}/cancel`,
     input,
-    { headers },
+    { headers: buildMutationHeaders(idempotencyKey, ifMatch) },
   );
 }

@@ -1,12 +1,10 @@
-'use client';
+﻿'use client';
 
 import {
   User,
   Phone,
-  MapPin,
   Users,
   Clock,
-  Shield,
   Truck,
   FileText,
   AlertCircle,
@@ -73,17 +71,21 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
             <InfoItem
               icon={<Users size={14} />}
               label="จำนวนผู้ประสบภัย"
-              value={`${data.peopleCount} คน`}
+              value={`${data.peopleCount ?? '-'} คน`}
             />
             <InfoItem
               label="ระดับความเร่งด่วน"
               value={
-                <Badge
-                  variant={PRIORITY_VARIANT_MAP[data.priorityLevel] ?? 'gray'}
-                  size="sm"
-                >
-                  {formatPriorityLevel(data.priorityLevel)}
-                </Badge>
+                data.priorityLevel ? (
+                  <Badge
+                    variant={PRIORITY_VARIANT_MAP[data.priorityLevel] ?? 'gray'}
+                    size="sm"
+                  >
+                    {formatPriorityLevel(data.priorityLevel)}
+                  </Badge>
+                ) : (
+                  '-'
+                )
               }
             />
             {data.specialNeeds && (
@@ -158,15 +160,19 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
             <InfoItem
               icon={<Clock size={14} />}
               label="ยื่นคำขอเมื่อ"
-              value={formatDateTime(data.submittedAt)}
+              value={data.submittedAt ? formatDateTime(data.submittedAt) : '-'}
             />
             <InfoItem
               icon={<Clock size={14} />}
               label="อัปเดตล่าสุด"
               value={
-                <span title={formatDateTime(data.lastUpdatedAt)}>
-                  {formatRelativeTime(data.lastUpdatedAt)}
-                </span>
+                data.lastUpdatedAt ? (
+                  <span title={formatDateTime(data.lastUpdatedAt)}>
+                    {formatRelativeTime(data.lastUpdatedAt)}
+                  </span>
+                ) : (
+                  '-'
+                )
               }
             />
             {data.lastCitizenUpdateAt && (
@@ -181,3 +187,4 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
     </div>
   );
 }
+

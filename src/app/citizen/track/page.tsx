@@ -8,8 +8,13 @@ import { Info } from 'lucide-react';
 export default function CitizenTrackPage() {
   const router = useRouter();
 
-  function handleFound(requestId: string, _incidentId: string) {
-    router.push(`/citizen/status/${requestId}`);
+  function handleFound(
+    requestId: string,
+    _incidentId: string,
+    trackingCode: string,
+  ) {
+    const params = new URLSearchParams({ trackingCode });
+    router.push(`/citizen/status/${requestId}?${params.toString()}`);
   }
 
   return (

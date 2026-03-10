@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,11 @@ import { trackingLookupSchema, TrackingLookupFormValues } from '@/lib/schemas/ci
 import { lookupTracking } from '@/lib/api/rescue';
 
 interface TrackingLookupFormProps {
-  onSuccess: (requestId: string, incidentId: string) => void;
+  onSuccess: (
+    requestId: string,
+    incidentId: string,
+    trackingCode: string,
+  ) => void;
 }
 
 export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
@@ -30,7 +34,7 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
     setApiError(null);
     try {
       const result = await lookupTracking(data);
-      onSuccess(result.requestId, result.incidentId);
+      onSuccess(result.requestId, result.incidentId, data.trackingCode);
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       if (e?.status === 403 || e?.status === 404) {

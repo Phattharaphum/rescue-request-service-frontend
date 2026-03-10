@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { ExternalLink, Users, Clock } from 'lucide-react';
@@ -37,7 +37,7 @@ export function RequestSummaryCard({ item }: RequestSummaryCardProps) {
             </span>
             <span className="flex items-center gap-1">
               <Users size={12} />
-              {item.peopleCount} คน
+              {item.peopleCount ?? '-'} คน
             </span>
           </div>
 
@@ -50,3 +50,4 @@ export function RequestSummaryCard({ item }: RequestSummaryCardProps) {
     </Card>
   );
 }
+

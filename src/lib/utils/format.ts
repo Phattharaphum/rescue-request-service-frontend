@@ -7,43 +7,48 @@ import {
 } from '@/types/rescue';
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
-  SUBMITTED: 'ยื่นคำขอแล้ว',
-  TRIAGED: 'คัดกรองแล้ว',
-  ASSIGNED: 'มอบหมายแล้ว',
-  IN_PROGRESS: 'กำลังดำเนินการ',
-  RESOLVED: 'เสร็จสิ้น',
-  CANCELLED: 'ยกเลิกแล้ว',
+  SUBMITTED: 'Submitted',
+  TRIAGED: 'Triaged',
+  ASSIGNED: 'Assigned',
+  IN_PROGRESS: 'In Progress',
+  RESOLVED: 'Resolved',
+  CANCELLED: 'Cancelled',
 };
 
 const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
-  MEDICAL: 'ฉุกเฉินทางการแพทย์',
-  RESCUE: 'กู้ภัย',
-  EVACUATION: 'อพยพ',
-  SUPPLY: 'ขอความช่วยเหลือสิ่งของ',
-  OTHER: 'อื่น ๆ',
+  FLOOD: 'Flood',
+  FIRE: 'Fire',
+  EARTHQUAKE: 'Earthquake',
+  LANDSLIDE: 'Landslide',
+  STORM: 'Storm',
+  MEDICAL: 'Medical',
+  EVACUATION: 'Evacuation',
+  SUPPLY: 'Supply',
+  OTHER: 'Other',
 };
 
 const SOURCE_CHANNEL_LABELS: Record<SourceChannel, string> = {
-  WEB: 'เว็บไซต์',
-  MOBILE: 'แอปพลิเคชัน',
-  CALL_CENTER: 'ศูนย์รับสาย',
+  WEB: 'Website',
+  MOBILE: 'Mobile App',
   LINE: 'LINE',
-  OTHER: 'อื่น ๆ',
+  PHONE: 'Phone',
+  WALK_IN: 'Walk-in',
+  OTHER: 'Other',
 };
 
 const UPDATE_TYPE_LABELS: Record<UpdateType, string> = {
-  NOTE: 'บันทึกเพิ่มเติม',
-  LOCATION_DETAILS: 'รายละเอียดสถานที่',
-  PEOPLE_COUNT: 'จำนวนผู้ประสบภัย',
-  SPECIAL_NEEDS: 'ความต้องการพิเศษ',
-  CONTACT_INFO: 'ข้อมูลติดต่อ',
+  NOTE: 'Note',
+  LOCATION_DETAILS: 'Location Details',
+  PEOPLE_COUNT: 'People Count',
+  SPECIAL_NEEDS: 'Special Needs',
+  CONTACT_INFO: 'Contact Info',
 };
 
 const PRIORITY_LEVEL_LABELS: Record<PriorityLevel, string> = {
-  LOW: 'ต่ำ',
-  MEDIUM: 'ปานกลาง',
-  HIGH: 'สูง',
-  CRITICAL: 'วิกฤต',
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  CRITICAL: 'Critical',
 };
 
 export function formatStatus(status: RequestStatus): string {

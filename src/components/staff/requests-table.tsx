@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
@@ -80,7 +80,7 @@ export function RequestsTable({ items, isLoading }: RequestsTableProps) {
               <span className="text-sm">{item.contactName}</span>
             </TableCell>
             <TableCell align="center">
-              <span className="text-sm font-medium">{item.peopleCount}</span>
+              <span className="text-sm font-medium">{item.peopleCount ?? '-'}</span>
             </TableCell>
             <TableCell>
               {item.priorityLevel ? (
@@ -107,3 +107,4 @@ export function RequestsTable({ items, isLoading }: RequestsTableProps) {
     </Table>
   );
 }
+

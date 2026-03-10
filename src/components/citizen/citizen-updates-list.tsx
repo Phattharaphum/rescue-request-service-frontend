@@ -91,7 +91,7 @@ export function CitizenUpdatesList({ requestId }: CitizenUpdatesListProps) {
           <div className="space-y-3">
             {data.items.map((item) => (
               <div
-                key={item.id}
+                key={item.updateId}
                 className="flex flex-col gap-1 p-3 rounded-lg border border-gray-100 bg-gray-50"
               >
                 <div className="flex items-center gap-2">
