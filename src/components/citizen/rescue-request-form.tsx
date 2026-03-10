@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { LocateFixed, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,24 +17,10 @@ import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 import { INCIDENTS } from '@/lib/config/incidents';
 
 const REQUEST_TYPE_OPTIONS = [
-  { value: 'FLOOD', label: 'น้ำท่วม' },
-  { value: 'FIRE', label: 'ไฟไหม้' },
-  { value: 'EARTHQUAKE', label: 'แผ่นดินไหว' },
-  { value: 'LANDSLIDE', label: 'ดินถล่ม' },
-  { value: 'STORM', label: 'พายุ' },
-  { value: 'MEDICAL', label: 'การแพทย์/ผู้ป่วย' },
-  { value: 'EVACUATION', label: 'อพยพ' },
-  { value: 'SUPPLY', label: 'เสบียง/สิ่งของ' },
-  { value: 'OTHER', label: 'อื่นๆ' },
-];
-
-const SOURCE_CHANNEL_OPTIONS = [
-  { value: 'WEB', label: 'เว็บไซต์' },
-  { value: 'MOBILE', label: 'แอปมือถือ' },
-  { value: 'LINE', label: 'LINE' },
-  { value: 'PHONE', label: 'โทรศัพท์' },
-  { value: 'WALK_IN', label: 'เดินทางมาด้วยตนเอง' },
-  { value: 'OTHER', label: 'อื่นๆ' },
+  { value: 'EVACUATION', label: 'อพยพออกจากพื้นที่' },
+  { value: 'SUPPLY', label: 'อาหาร / น้ำดื่ม / เสบียง' },
+  { value: 'MEDICAL', label: 'การแพทย์ / ยา / ผู้ป่วยฉุกเฉิน' },
+  { value: 'OTHER', label: 'เครื่องใช้จำเป็น' },
 ];
 
 const INCIDENT_OPTIONS = INCIDENTS.map((i) => ({ value: i.value, label: i.label }));
@@ -49,19 +36,33 @@ interface RescueRequestFormProps {
 
 export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isMockingLocation, setIsMockingLocation] = useState(false);
 
   const {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RescueRequestFormValues>({
     resolver: zodResolver(rescueRequestSchema) as unknown as Resolver<RescueRequestFormValues>,
     defaultValues: {
       incidentId: INCIDENTS[0]?.value ?? '',
       peopleCount: 1,
+      sourceChannel: 'WEB',
     },
   });
+  const mockGpsLocation = () => {
+    setIsMockingLocation(true);
+
+    const lat = Number((5.6 + Math.random() * 14.1).toFixed(6));
+    const lng = Number((97.3 + Math.random() * 8.2).toFixed(6));
+
+    setValue('latitude', lat, { shouldDirty: true, shouldValidate: true });
+    setValue('longitude', lng, { shouldDirty: true, shouldValidate: true });
+
+    window.setTimeout(() => setIsMockingLocation(false), 400);
+  };
 
   const onSubmit = async (data: RescueRequestFormValues) => {
     setApiError(null);
@@ -84,11 +85,22 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
       {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
 
-      {/* Section 1: ข้อมูลเหตุการณ์ */}
-      <Card>
-        <CardHeader title="ข้อมูลเหตุการณ์" />
+      <div className="rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 to-cyan-50 px-5 py-4">
+        <div className="flex items-start gap-3">
+          <Sparkles size={18} className="mt-0.5 text-teal-600" />
+          <div>
+            <p className="text-sm font-semibold text-teal-900">แจ้งข้อมูลให้ครบเพื่อช่วยให้ทีมเข้าถึงได้เร็วขึ้น</p>
+            <p className="mt-1 text-sm text-teal-800">
+              เลือกประเภทคำขอ, กดดึงพิกัด, และกรอกข้อมูลติดต่อให้ถูกต้อง
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Card className="border-teal-100">
+        <CardHeader title="ข้อมูลเหตุการณ์" className="bg-teal-50/70" />
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Controller
               name="incidentId"
               control={control}
@@ -111,8 +123,8 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
                   label="ประเภทคำขอช่วยเหลือ"
                   required
                   options={REQUEST_TYPE_OPTIONS}
-                  placeholder="เลือกประเภท..."
-                  value={field.value}
+                  placeholder="กรุณาเลือกประเภทคำขอ"
+                  value={field.value ?? ''}
                   onChange={field.onChange}
                   error={errors.requestType?.message}
                 />
@@ -139,17 +151,29 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
         </CardContent>
       </Card>
 
-      {/* Section 2: ตำแหน่งที่เกิดเหตุ */}
-      <Card>
-        <CardHeader title="ตำแหน่งที่เกิดเหตุ" />
+      <Card className="border-teal-100">
+        <CardHeader title="ตำแหน่งที่เกิดเหตุ" className="bg-teal-50/70" />
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                leftIcon={<LocateFixed size={16} />}
+                loading={isMockingLocation}
+                onClick={mockGpsLocation}
+                className="w-full sm:w-auto"
+              >
+                {isMockingLocation ? 'กำลังดึงตำแหน่งจำลอง...' : 'ดึงตำแหน่ง GPS (จำลอง)'}
+              </Button>
+            </div>
             <Input
               label="ละติจูด"
               required
               type="number"
               step="any"
-              placeholder="เช่น 13.7563"
+              readOnly
+              placeholder="กดปุ่มเพื่อดึงตำแหน่ง"
               {...register('latitude')}
               error={errors.latitude?.message}
             />
@@ -158,7 +182,8 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
               required
               type="number"
               step="any"
-              placeholder="เช่น 100.5018"
+              readOnly
+              placeholder="กดปุ่มเพื่อดึงตำแหน่ง"
               {...register('longitude')}
               error={errors.longitude?.message}
             />
@@ -199,11 +224,10 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
         </CardContent>
       </Card>
 
-      {/* Section 3: ข้อมูลผู้ติดต่อ */}
-      <Card>
-        <CardHeader title="ข้อมูลผู้ติดต่อ" />
+      <Card className="border-teal-100">
+        <CardHeader title="ข้อมูลผู้ติดต่อ" className="bg-teal-50/70" />
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="ชื่อผู้ติดต่อ"
               required
@@ -216,31 +240,25 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
               required
               type="tel"
               placeholder="0812345678"
-              {...register('contactPhone')}
+              inputMode="numeric"
+              autoComplete="tel-national"
+              maxLength={10}
+              {...register('contactPhone', {
+                onChange: (event) => {
+                  const digits = String(event.target.value ?? '')
+                    .replace(/\D/g, '')
+                    .slice(0, 10);
+                  event.target.value = digits;
+                },
+              })}
               error={errors.contactPhone?.message}
-            />
-            <Controller
-              name="sourceChannel"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  label="ช่องทางการแจ้ง"
-                  required
-                  options={SOURCE_CHANNEL_OPTIONS}
-                  placeholder="เลือกช่องทาง..."
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={errors.sourceChannel?.message}
-                />
-              )}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Section 4: ความต้องการพิเศษ */}
-      <Card>
-        <CardHeader title="ความต้องการพิเศษ (ถ้ามี)" />
+      <Card className="border-teal-100">
+        <CardHeader title="ความต้องการพิเศษ (ถ้ามี)" className="bg-teal-50/70" />
         <CardContent>
           <Controller
             name="specialNeeds"
@@ -258,6 +276,8 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
         </CardContent>
       </Card>
 
+      <input type="hidden" value="WEB" {...register('sourceChannel')} />
+
       <div className="flex justify-end">
         <Button
           type="submit"
@@ -272,4 +292,3 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
     </form>
   );
 }
-

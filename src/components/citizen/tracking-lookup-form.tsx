@@ -12,11 +12,7 @@ import { trackingLookupSchema, TrackingLookupFormValues } from '@/lib/schemas/ci
 import { lookupTracking } from '@/lib/api/rescue';
 
 interface TrackingLookupFormProps {
-  onSuccess: (
-    requestId: string,
-    incidentId: string,
-    trackingCode: string,
-  ) => void;
+  onSuccess: (requestId: string, incidentId: string, trackingCode: string) => void;
 }
 
 export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
@@ -50,9 +46,7 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
       <CardHeader title="ติดตามสถานะคำขอ" />
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          {apiError && (
-            <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />
-          )}
+          {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
 
           <Input
             label="เบอร์โทรศัพท์ที่ใช้แจ้ง"

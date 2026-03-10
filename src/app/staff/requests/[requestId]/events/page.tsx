@@ -29,9 +29,7 @@ export default function RequestEventsPage({ params }: PageProps) {
           }
         />
 
-        <div className="bg-white rounded-xl border shadow-sm p-4">
-          <EventsList requestId={requestId} />
-        </div>
+        <EventsList requestId={requestId} />
       </div>
     </AppShell>
   );

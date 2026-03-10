@@ -1,55 +1,77 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, Activity } from 'lucide-react';
+import { Activity, ChevronRight, RefreshCw } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { PageHeader } from '@/components/layout/page-header';
 import { IncidentSelector } from '@/components/shared/incident-selector';
 import { RequestsTable } from '@/components/staff/requests-table';
-import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { useIncident } from '@/lib/hooks/use-incident';
 import { listIncidentRequests } from '@/lib/api/rescue';
+import { formatStatus } from '@/lib/utils/format';
 import type { RequestStatus } from '@/types/rescue';
 
-const STATUS_FILTERS: { label: string; value: string }[] = [
-  { label: 'ทั้งหมด', value: '' },
-  { label: 'SUBMITTED', value: 'SUBMITTED' },
-  { label: 'TRIAGED', value: 'TRIAGED' },
-  { label: 'ASSIGNED', value: 'ASSIGNED' },
-  { label: 'IN_PROGRESS', value: 'IN_PROGRESS' },
-  { label: 'RESOLVED', value: 'RESOLVED' },
-  { label: 'CANCELLED', value: 'CANCELLED' },
+const STATUS_OPTIONS: RequestStatus[] = [
+  'SUBMITTED',
+  'TRIAGED',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'RESOLVED',
+  'CANCELLED',
 ];
-
-const ALL_STATUSES: RequestStatus[] = ['SUBMITTED', 'TRIAGED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'];
 
 export default function StaffDashboardPage() {
   const { incidentId, setIncidentId } = useIncident();
   const [statusFilter, setStatusFilter] = useState('');
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [prevCursors, setPrevCursors] = useState<string[]>([]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['incident-requests', incidentId, statusFilter],
-    queryFn: () => listIncidentRequests(incidentId, {
-      status: (statusFilter as RequestStatus) || undefined,
-      limit: 50,
-    }),
+    queryKey: ['incident-requests-page', incidentId, statusFilter, cursor],
+    queryFn: () =>
+      listIncidentRequests(incidentId, {
+        status: (statusFilter as RequestStatus) || undefined,
+        cursor,
+        limit: 20,
+      }),
     enabled: !!incidentId,
   });
 
   const items = data?.items ?? [];
+  const nextCursor = data?.nextCursor;
 
-  const countByStatus = ALL_STATUSES.reduce<Record<string, number>>((acc, s) => {
-    acc[s] = items.filter((i) => i.status === s).length;
-    return acc;
-  }, {});
+  const onChangeIncident = (value: string) => {
+    setIncidentId(value);
+    setCursor(undefined);
+    setPrevCursors([]);
+  };
+
+  const onChangeStatus = (value: string) => {
+    setStatusFilter(value);
+    setCursor(undefined);
+    setPrevCursors([]);
+  };
+
+  const onNext = () => {
+    if (!nextCursor) return;
+    setPrevCursors((prev) => [...prev, cursor ?? '']);
+    setCursor(nextCursor);
+  };
+
+  const onPrev = () => {
+    const prev = prevCursors[prevCursors.length - 1];
+    setPrevCursors((p) => p.slice(0, -1));
+    setCursor(prev === '' ? undefined : prev);
+  };
 
   return (
     <AppShell variant="staff">
       <div className="space-y-6">
         <PageHeader
-          title="แผงควบคุมเจ้าหน้าที่"
+          title="แผงคำขอช่วยเหลือ"
           actions={
             <div className="flex gap-2">
               <Link href="/pubsub">
@@ -64,37 +86,60 @@ export default function StaffDashboardPage() {
           }
         />
 
-        <IncidentSelector value={incidentId} onChange={setIncidentId} />
+        <IncidentSelector value={incidentId} onChange={onChangeIncident} />
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {ALL_STATUSES.map((status) => (
-            <div key={status} className="bg-white rounded-xl border p-3 text-center shadow-sm">
-              <p className="text-2xl font-bold text-gray-900">{countByStatus[status]}</p>
-              <StatusBadge status={status} />
-            </div>
-          ))}
-        </div>
-
-        {/* Status Filter */}
         <div className="flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((f) => (
+          <button
+            onClick={() => onChangeStatus('')}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              statusFilter === ''
+                ? 'bg-teal-600 text-white'
+                : 'border border-gray-200 bg-white text-gray-600 hover:border-teal-400'
+            }`}
+          >
+            ทั้งหมด
+          </button>
+          {STATUS_OPTIONS.map((status) => (
             <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                statusFilter === f.value
+              key={status}
+              onClick={() => onChangeStatus(status)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                statusFilter === status
                   ? 'bg-teal-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-400'
+                  : 'border border-gray-200 bg-white text-gray-600 hover:border-teal-400'
               }`}
             >
-              {f.label}
+              {formatStatus(status)}
             </button>
           ))}
         </div>
 
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <RequestsTable items={items} isLoading={isLoading} />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading || prevCursors.length === 0}
+            onClick={onPrev}
+          >
+            ← หน้าแรก
+          </Button>
+          {nextCursor && (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-gray-400">cursor: {nextCursor.slice(0, 20)}…</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isLoading}
+                onClick={onNext}
+              >
+                ถัดไป <ChevronRight size={14} />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

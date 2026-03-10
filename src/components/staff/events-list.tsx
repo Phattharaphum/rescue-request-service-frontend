@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -7,9 +7,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingState } from '@/components/shared/loading-state';
 import { ErrorAlert } from '@/components/shared/error-alert';
-import { EmptyState } from '@/components/shared/empty-state';
-import { PaginationControls } from '@/components/shared/pagination-controls';
-import { StatusBadge } from '@/components/shared/status-badge';
+import { EmptyState } from '@/components/shared/empty-state';import { StatusBadge } from '@/components/shared/status-badge';
 import { listRequestEvents } from '@/lib/api/rescue';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils/date';
 import { StatusEvent } from '@/types/rescue';
@@ -65,35 +63,18 @@ const STATUS_COLOR_MAP: Record<string, string> = {
 
 export function EventsList({ requestId }: EventsListProps) {
   const [order, setOrder] = useState<'ASC' | 'DESC'>('DESC');
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const [prevCursors, setPrevCursors] = useState<string[]>([]);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['events', requestId, order, cursor],
-    queryFn: () => listRequestEvents(requestId, { cursor, limit: 10, order }),
+    queryKey: ['events', requestId, order],
+    queryFn: () => listRequestEvents(requestId, { limit: 50, order }),
   });
-
-  const handleNext = () => {
-    if (data?.nextCursor) {
-      setPrevCursors((prev) => [...prev, cursor ?? '']);
-      setCursor(data.nextCursor);
-    }
-  };
-
-  const handlePrev = () => {
-    const prev = prevCursors[prevCursors.length - 1];
-    setPrevCursors((p) => p.slice(0, -1));
-    setCursor(prev === '' ? undefined : prev);
-  };
 
   const toggleOrder = () => {
     setOrder((o) => (o === 'DESC' ? 'ASC' : 'DESC'));
-    setCursor(undefined);
-    setPrevCursors([]);
   };
 
   return (
-    <Card>
+    <Card className="border-gray-200">
       <CardHeader
         title="ประวัติสถานะ"
         action={
@@ -120,23 +101,26 @@ export function EventsList({ requestId }: EventsListProps) {
         )}
         {!isLoading && data && data.items.length > 0 && (
           <div className="space-y-4">
-            <ol className="relative flex flex-col gap-0">
+            <ol className="relative">
               {data.items.map((event, index) => {
                 const isLast = index === data.items.length - 1;
                 return (
-                  <li key={event.eventId} className="relative flex gap-4 pb-6 last:pb-0">
+                  <li
+                    key={event.eventId}
+                    className="relative grid grid-cols-[2rem_minmax(0,1fr)] gap-3 pb-6 last:pb-0"
+                  >
                     {!isLast && (
                       <span
-                        className="absolute left-4 top-8 bottom-0 w-px bg-gray-200"
+                        className="absolute left-[0.95rem] top-9 h-[calc(100%-2.25rem)] w-px bg-gray-200"
                         aria-hidden="true"
                       />
                     )}
                     <div
-                      className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full shrink-0 text-xs font-bold ${STATUS_COLOR_MAP[event.newStatus] ?? 'bg-gray-100 text-gray-600'}`}
+                      className={`relative z-10 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${STATUS_COLOR_MAP[event.newStatus] ?? 'bg-gray-100 text-gray-600'}`}
                     >
                       {event.version}
                     </div>
-                    <div className="flex-1 min-w-0 pt-1">
+                    <div className="min-w-0 pt-0.5">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={event.newStatus} size="sm" />
                         <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">
@@ -152,14 +136,6 @@ export function EventsList({ requestId }: EventsListProps) {
                 );
               })}
             </ol>
-
-            <PaginationControls
-              nextCursor={data.nextCursor}
-              onNext={handleNext}
-              onPrev={handlePrev}
-              isLoading={isLoading}
-              hasPrev={prevCursors.length > 0}
-            />
           </div>
         )}
       </CardContent>

@@ -2,17 +2,12 @@ import { z } from 'zod';
 import { phoneSchema } from '@/lib/schemas/common';
 
 const REQUEST_TYPES = [
-  'FLOOD',
-  'FIRE',
-  'EARTHQUAKE',
-  'LANDSLIDE',
-  'STORM',
-  'MEDICAL',
   'EVACUATION',
   'SUPPLY',
+  'MEDICAL',
   'OTHER',
 ] as const;
-const SOURCE_CHANNELS = ['WEB', 'MOBILE', 'LINE', 'PHONE', 'WALK_IN', 'OTHER'] as const;
+const SOURCE_CHANNELS = ['WEB'] as const;
 const UPDATE_TYPES = [
   'NOTE',
   'LOCATION_DETAILS',
@@ -24,10 +19,7 @@ const UPDATE_TYPES = [
 export const rescueRequestSchema = z.object({
   incidentId: z.string().min(1, 'กรุณาเลือกเหตุการณ์'),
   requestType: z.enum(REQUEST_TYPES, { error: 'กรุณาเลือกประเภทคำขอ' }),
-  description: z
-    .string()
-    .min(10, 'กรุณาอธิบายสถานการณ์อย่างน้อย 10 ตัวอักษร')
-    .max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
+  description: z.string().min(1, 'กรุณาอธิบายสถานการณ์').max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
   peopleCount: z.coerce
     .number()
     .int('ต้องเป็นจำนวนเต็ม')
@@ -43,7 +35,7 @@ export const rescueRequestSchema = z.object({
     .max(180, 'ลองจิจูดไม่ถูกต้อง'),
   contactName: z
     .string()
-    .min(2, 'ชื่อผู้ติดต่อต้องมีอย่างน้อย 2 ตัวอักษร')
+    .min(2, 'ชื่อผู้ติดต่ออย่างน้อย 2 ตัวอักษร')
     .max(100, 'ไม่เกิน 100 ตัวอักษร'),
   contactPhone: phoneSchema,
   sourceChannel: z.enum(SOURCE_CHANNELS, { error: 'กรุณาเลือกช่องทางการแจ้ง' }),
@@ -59,22 +51,20 @@ export type RescueRequestFormValues = z.infer<typeof rescueRequestSchema>;
 
 export const trackingLookupSchema = z.object({
   contactPhone: phoneSchema,
-  trackingCode: z
-    .string()
-    .min(1, 'กรุณากรอกรหัสติดตาม')
-    .max(50, 'รหัสติดตามไม่ถูกต้อง'),
+  trackingCode: z.string().min(1, 'กรุณากรอกรหัสติดตาม').max(50, 'รหัสติดตามไม่ถูกต้อง'),
 });
 
 export type TrackingLookupFormValues = z.infer<typeof trackingLookupSchema>;
 
 // Dynamic payload schemas per updateType
 const notePayloadSchema = z.object({
-  note: z.string().min(1, 'กรุณากรอกข้อความ').max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
+  note: z.string().trim().min(1, 'กรุณากรอกข้อความ').max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
 });
 
 const locationDetailsPayloadSchema = z.object({
   locationDetails: z
     .string()
+    .trim()
     .min(1, 'กรุณากรอกรายละเอียดสถานที่')
     .max(500, 'ไม่เกิน 500 ตัวอักษร'),
 });
@@ -88,22 +78,36 @@ const peopleCountPayloadSchema = z.object({
 });
 
 const specialNeedsPayloadSchema = z.object({
-  specialNeeds: z.string().min(1, 'กรุณาระบุความต้องการพิเศษ').max(500),
+  specialNeeds: z.string().trim().min(1, 'กรุณาระบุความต้องการพิเศษ').max(500),
 });
 
-const contactInfoPayloadSchema = z.object({
-  contactName: z.string().min(2, 'กรุณากรอกชื่อ').max(100).optional(),
-  contactPhone: phoneSchema.optional(),
-});
+const contactInfoPayloadSchema = z
+  .object({
+    contactName: z.string().trim().min(2, 'ชื่อผู้ติดต่ออย่างน้อย 2 ตัวอักษร').max(100).optional(),
+    contactPhone: phoneSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasName = !!data.contactName?.trim();
+    const hasPhone = !!data.contactPhone?.trim();
+
+    if (!hasName && !hasPhone) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactName'],
+        message: 'กรุณากรอกอย่างน้อยชื่อผู้ติดต่อหรือเบอร์โทรศัพท์',
+      });
+    }
+  });
 
 export const citizenUpdateSchema = z
   .object({
-    trackingCode: z.string().min(1, 'กรุณากรอกรหัสติดตาม'),
+    trackingCode: z.string().trim().min(1, 'กรุณากรอกรหัสติดตาม'),
     updateType: z.enum(UPDATE_TYPES, { error: 'กรุณาเลือกประเภทการอัปเดต' }),
     updatePayload: z.record(z.string(), z.unknown()),
   })
   .superRefine((data, ctx) => {
     let result;
+
     switch (data.updateType) {
       case 'NOTE':
         result = notePayloadSchema.safeParse(data.updatePayload);

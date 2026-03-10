@@ -22,7 +22,7 @@ function UpdatesContent({ requestId }: { requestId: string }) {
   const [manualTrackingCode, setManualTrackingCode] = useState('');
   const [listVersion, setListVersion] = useState(0);
 
-  const effectiveTrackingCode = trackingCodeFromQuery || manualTrackingCode.trim();
+  const effectiveTrackingCode = (trackingCodeFromQuery || manualTrackingCode).trim();
 
   const applyTrackingCode = () => {
     const nextCode = manualTrackingCode.trim();
@@ -36,28 +36,23 @@ function UpdatesContent({ requestId }: { requestId: string }) {
   return (
     <div className="space-y-6">
       {!trackingCodeFromQuery && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
-          <Info size={20} className="text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-800 w-full space-y-3">
-            <p className="font-medium">Tracking code is required to submit updates</p>
-            <p>Enter your tracking code to continue, or go back to lookup.</p>
-            <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <Info size={20} className="mt-0.5 shrink-0 text-amber-600" />
+          <div className="w-full space-y-3 text-sm text-amber-800">
+            <p className="font-medium">ต้องมีรหัสติดตามก่อนจึงจะส่งข้อมูลเพิ่มเติมได้</p>
+            <p>กรอกรหัสติดตามเพื่อดำเนินการต่อ หรือกลับไปหน้าค้นหาสถานะ</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
-                placeholder="Tracking code"
+                placeholder="กรอกรหัสติดตาม"
                 value={manualTrackingCode}
                 onChange={(e) => setManualTrackingCode(e.target.value)}
               />
-              <Button
-                type="button"
-                variant="primary"
-                onClick={applyTrackingCode}
-                disabled={!manualTrackingCode.trim()}
-              >
-                Continue
+              <Button type="button" variant="primary" onClick={applyTrackingCode} disabled={!manualTrackingCode.trim()}>
+                ดำเนินการต่อ
               </Button>
             </div>
             <Link href="/citizen/track" className="inline-block">
-              <Button type="button" variant="outline">Back to lookup</Button>
+              <Button type="button" variant="outline">กลับไปค้นหาสถานะ</Button>
             </Link>
           </div>
         </div>
@@ -86,16 +81,16 @@ export default function CitizenUpdatesPage({ params }: PageProps) {
 
   return (
     <AppShell variant="citizen">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6">
         <PageHeader
-          title="Send Additional Information"
+          title="ส่งข้อมูลเพิ่มเติม"
           breadcrumbs={[
-            { label: 'Home', href: '/' },
-            { label: 'Status', href: statusHref },
-            { label: 'Updates' },
+            { label: 'หน้าหลัก', href: '/' },
+            { label: 'สถานะคำขอ', href: statusHref },
+            { label: 'ส่งข้อมูลเพิ่มเติม' },
           ]}
         />
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div>กำลังโหลด...</div>}>
           <UpdatesContent requestId={requestId} />
         </Suspense>
       </div>

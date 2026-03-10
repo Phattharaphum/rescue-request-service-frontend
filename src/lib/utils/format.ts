@@ -7,24 +7,24 @@ import {
 } from '@/types/rescue';
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
-  SUBMITTED: 'Submitted',
-  TRIAGED: 'Triaged',
-  ASSIGNED: 'Assigned',
-  IN_PROGRESS: 'In Progress',
-  RESOLVED: 'Resolved',
-  CANCELLED: 'Cancelled',
+  SUBMITTED: 'รับคำขอแล้ว',
+  TRIAGED: 'คัดกรองแล้ว',
+  ASSIGNED: 'มอบหมายแล้ว',
+  IN_PROGRESS: 'กำลังช่วยเหลือ',
+  RESOLVED: 'เสร็จสิ้น',
+  CANCELLED: 'ยกเลิก',
 };
 
 const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
-  FLOOD: 'Flood',
-  FIRE: 'Fire',
-  EARTHQUAKE: 'Earthquake',
-  LANDSLIDE: 'Landslide',
-  STORM: 'Storm',
-  MEDICAL: 'Medical',
-  EVACUATION: 'Evacuation',
-  SUPPLY: 'Supply',
-  OTHER: 'Other',
+  FLOOD: 'น้ำท่วม',
+  FIRE: 'ไฟไหม้',
+  EARTHQUAKE: 'แผ่นดินไหว',
+  LANDSLIDE: 'ดินถล่ม',
+  STORM: 'พายุ',
+  MEDICAL: 'การแพทย์ / ยา / ผู้ป่วยฉุกเฉิน',
+  EVACUATION: 'อพยพออกจากพื้นที่',
+  SUPPLY: 'อาหาร / น้ำดื่ม / เสบียง',
+  OTHER: 'เครื่องใช้จำเป็น',
 };
 
 const SOURCE_CHANNEL_LABELS: Record<SourceChannel, string> = {
@@ -37,11 +37,11 @@ const SOURCE_CHANNEL_LABELS: Record<SourceChannel, string> = {
 };
 
 const UPDATE_TYPE_LABELS: Record<UpdateType, string> = {
-  NOTE: 'Note',
-  LOCATION_DETAILS: 'Location Details',
-  PEOPLE_COUNT: 'People Count',
-  SPECIAL_NEEDS: 'Special Needs',
-  CONTACT_INFO: 'Contact Info',
+  NOTE: 'หมายเหตุ',
+  LOCATION_DETAILS: 'รายละเอียดตำแหน่ง',
+  PEOPLE_COUNT: 'จำนวนผู้ประสบภัย',
+  SPECIAL_NEEDS: 'ความต้องการพิเศษ',
+  CONTACT_INFO: 'ข้อมูลติดต่อ',
 };
 
 const PRIORITY_LEVEL_LABELS: Record<PriorityLevel, string> = {

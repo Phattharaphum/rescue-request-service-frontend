@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { LoadingState } from '@/components/shared/loading-state';
 import { EmptyState } from '@/components/shared/empty-state';
 import { IncidentRequestSummary, PriorityLevel } from '@/types/rescue';
 import { formatRequestType, formatPriorityLevel } from '@/lib/utils/format';
@@ -30,9 +29,39 @@ interface RequestsTableProps {
   isLoading: boolean;
 }
 
+function RequestsTableSkeleton() {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>รหัสคำขอ</TableHead>
+          <TableHead>ประเภท</TableHead>
+          <TableHead>สถานะ</TableHead>
+          <TableHead>ผู้ติดต่อ</TableHead>
+          <TableHead align="center">จำนวนคน</TableHead>
+          <TableHead>ความเร่งด่วน</TableHead>
+          <TableHead>หน่วยงาน</TableHead>
+          <TableHead>ยื่นเมื่อ</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <TableRow key={`skeleton-${idx}`}>
+            {Array.from({ length: 8 }).map((__, colIdx) => (
+              <TableCell key={`skeleton-${idx}-${colIdx}`}>
+                <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 export function RequestsTable({ items, isLoading }: RequestsTableProps) {
   if (isLoading) {
-    return <LoadingState message="กำลังโหลดรายการ..." />;
+    return <RequestsTableSkeleton />;
   }
 
   if (items.length === 0) {

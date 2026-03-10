@@ -43,7 +43,7 @@ export default function CurrentStatePage({ params }: PageProps) {
         {data && (
           <div className="space-y-6">
             <CurrentStateCard state={data} />
-            <div className="bg-white rounded-xl border shadow-sm p-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">ข้อมูล JSON</h3>
               <JsonViewer data={data} />
             </div>

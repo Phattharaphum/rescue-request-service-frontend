@@ -1,34 +1,32 @@
 'use client';
 
-import Link from 'next/link';
-import { Edit, Phone, MapPin, Users, Calendar, Hash, Tag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Calendar, Hash, MapPin, Phone, Tag, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { InfoItem } from '@/components/shared/info-item';
 import { RescueRequestMaster } from '@/types/rescue';
-import { formatRequestType, formatSourceChannel } from '@/lib/utils/format';
 import { formatDateTime } from '@/lib/utils/date';
+import { formatRequestType, formatSourceChannel } from '@/lib/utils/format';
+import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 
 interface RequestMasterCardProps {
   master: RescueRequestMaster;
-  requestId: string;
+  requestId?: string;
 }
 
-export function RequestMasterCard({ master, requestId }: RequestMasterCardProps) {
+export function RequestMasterCard({ master }: RequestMasterCardProps) {
+  const parsedSpecialNeeds = parseSpecialNeeds(master.specialNeeds);
+  const specialNeedChips =
+    parsedSpecialNeeds.mode === 'chip'
+      ? (parsedSpecialNeeds.items ?? [])
+      : parsedSpecialNeeds.text
+        ? [parsedSpecialNeeds.text]
+        : [];
+
   return (
     <Card>
-      <CardHeader
-        title="ข้อมูลคำขอ"
-        action={
-          <Link href={`/staff/requests/${requestId}/edit`}>
-            <Button variant="outline" size="sm" leftIcon={<Edit size={14} />}>
-              แก้ไข
-            </Button>
-          </Link>
-        }
-      />
+      <CardHeader title="ข้อมูลคำขอ" />
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <InfoItem
             icon={<Hash size={14} />}
             label="รหัสคำขอ"
@@ -51,27 +49,39 @@ export function RequestMasterCard({ master, requestId }: RequestMasterCardProps)
           <div className="sm:col-span-2">
             <InfoItem label="รายละเอียด" value={master.description} />
           </div>
+
           {master.specialNeeds && (
             <div className="sm:col-span-2">
-              <InfoItem label="ความต้องการพิเศษ" value={master.specialNeeds} />
+              <InfoItem
+                label="ความต้องการพิเศษ"
+                value={
+                  specialNeedChips.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {specialNeedChips.map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    '-'
+                  )
+                }
+              />
             </div>
           )}
 
-          {/* Location */}
           <InfoItem
             icon={<MapPin size={14} />}
             label="พิกัด"
             value={`${master.latitude.toFixed(6)}, ${master.longitude.toFixed(6)}`}
           />
-          {master.province && (
-            <InfoItem label="จังหวัด" value={master.province} />
-          )}
-          {master.district && (
-            <InfoItem label="อำเภอ/เขต" value={master.district} />
-          )}
-          {master.subdistrict && (
-            <InfoItem label="ตำบล/แขวง" value={master.subdistrict} />
-          )}
+          {master.province && <InfoItem label="จังหวัด" value={master.province} />}
+          {master.district && <InfoItem label="อำเภอ/เขต" value={master.district} />}
+          {master.subdistrict && <InfoItem label="ตำบล/แขวง" value={master.subdistrict} />}
           {master.addressLine && (
             <div className="sm:col-span-2">
               <InfoItem label="ที่อยู่" value={master.addressLine} />
@@ -83,7 +93,6 @@ export function RequestMasterCard({ master, requestId }: RequestMasterCardProps)
             </div>
           )}
 
-          {/* Contact */}
           <InfoItem label="ชื่อผู้ติดต่อ" value={master.contactName} />
           <InfoItem
             icon={<Phone size={14} />}
@@ -95,7 +104,6 @@ export function RequestMasterCard({ master, requestId }: RequestMasterCardProps)
             value={formatSourceChannel(master.sourceChannel)}
           />
 
-          {/* Timestamps */}
           <InfoItem
             icon={<Calendar size={14} />}
             label="ยื่นคำขอเมื่อ"

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -50,7 +50,7 @@ interface StateActionPanelProps {
   requestId: string;
   status: RequestStatus;
   stateVersion: number;
-  onSuccess?: () => void;
+  onSuccess?: (payload?: { expectedVersion?: number }) => Promise<void> | void;
 }
 
 interface ActionFormData {
@@ -160,12 +160,14 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
           throw new Error('Unknown action');
       }
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.show('ดำเนินการสำเร็จ', 'success');
       queryClient.invalidateQueries({ queryKey: ['request-detail', requestId] });
       setActiveAction(null);
       reset(resetValues());
-      onSuccess?.();
+      const expectedVersion =
+        (result as { version?: number } | undefined)?.version;
+      await onSuccess?.({ expectedVersion });
     },
     onError: (err: unknown) => {
       const e = err as { status?: number; message?: string };

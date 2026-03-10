@@ -49,7 +49,7 @@ export default function IdempotencyPage({ params }: PageProps) {
           ]}
         />
 
-        <div className="bg-white rounded-xl border shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -72,7 +72,7 @@ export default function IdempotencyPage({ params }: PageProps) {
         {data && (
           <div className="space-y-4">
             <IdempotencyCard data={data} />
-            <div className="bg-white rounded-xl border shadow-sm p-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">ข้อมูล JSON</h3>
               <JsonViewer data={data} />
             </div>

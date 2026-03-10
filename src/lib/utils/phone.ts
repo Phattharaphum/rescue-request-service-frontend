@@ -1,4 +1,4 @@
-const PHONE_REGEX = /^\d{10,15}$/;
+const PHONE_REGEX = /^\d{10}$/;
 
 export function validatePhone(phone: string): boolean {
   return PHONE_REGEX.test(phone.replace(/[\s\-().+]/g, ''));

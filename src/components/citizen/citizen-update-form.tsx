@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,11 +16,11 @@ import { createCitizenUpdate } from '@/lib/api/rescue';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 
 const UPDATE_TYPE_OPTIONS = [
-  { value: 'NOTE', label: 'Note' },
-  { value: 'LOCATION_DETAILS', label: 'Location Details' },
-  { value: 'PEOPLE_COUNT', label: 'People Count' },
-  { value: 'SPECIAL_NEEDS', label: 'Special Needs' },
-  { value: 'CONTACT_INFO', label: 'Contact Info' },
+  { value: 'NOTE', label: 'หมายเหตุ' },
+  { value: 'LOCATION_DETAILS', label: 'รายละเอียดตำแหน่ง' },
+  { value: 'PEOPLE_COUNT', label: 'จำนวนผู้ประสบภัย' },
+  { value: 'SPECIAL_NEEDS', label: 'ความต้องการพิเศษ' },
+  { value: 'CONTACT_INFO', label: 'ข้อมูลติดต่อ' },
 ];
 
 interface CitizenUpdateFormProps {
@@ -29,22 +29,53 @@ interface CitizenUpdateFormProps {
   onSuccess?: () => void;
 }
 
-export function CitizenUpdateForm({
-  requestId,
-  trackingCode,
-  onSuccess,
-}: CitizenUpdateFormProps) {
+function sanitizeUpdatePayload(data: CitizenUpdateFormValues): Record<string, unknown> {
+  const payload = data.updatePayload as Record<string, unknown>;
+
+  switch (data.updateType) {
+    case 'NOTE':
+      return { note: String(payload.note ?? '').trim() };
+
+    case 'LOCATION_DETAILS':
+      return { locationDetails: String(payload.locationDetails ?? '').trim() };
+
+    case 'PEOPLE_COUNT': {
+      const peopleCount = Number(payload.peopleCount ?? 0);
+      return { peopleCount };
+    }
+
+    case 'SPECIAL_NEEDS':
+      return { specialNeeds: String(payload.specialNeeds ?? '').trim() };
+
+    case 'CONTACT_INFO': {
+      const contactName = String(payload.contactName ?? '').trim();
+      const contactPhone = String(payload.contactPhone ?? '').trim();
+      return {
+        ...(contactName ? { contactName } : {}),
+        ...(contactPhone ? { contactPhone } : {}),
+      };
+    }
+
+    default:
+      return {};
+  }
+}
+
+export function CitizenUpdateForm({ requestId, trackingCode, onSuccess }: CitizenUpdateFormProps) {
   const queryClient = useQueryClient();
   const [apiError, setApiError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const {
+    register,
     handleSubmit,
     control,
+    setValue,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CitizenUpdateFormValues>({
     resolver: zodResolver(citizenUpdateSchema),
+    shouldUnregister: true,
     defaultValues: {
       trackingCode,
       updateType: 'NOTE',
@@ -57,41 +88,55 @@ export function CitizenUpdateForm({
     name: 'updateType',
   });
 
+  useEffect(() => {
+    setValue('trackingCode', trackingCode.trim(), { shouldValidate: true });
+  }, [trackingCode, setValue]);
+
   const onSubmit = async (data: CitizenUpdateFormValues) => {
     setApiError(null);
     setSuccess(false);
+
+    const input = {
+      trackingCode: data.trackingCode.trim(),
+      updateType: data.updateType,
+      updatePayload: sanitizeUpdatePayload(data),
+    };
+
     try {
       const key = generateIdempotencyKey();
-      await createCitizenUpdate(requestId, data, key);
-      await queryClient.invalidateQueries({
-        queryKey: ['citizen-updates', requestId],
-      });
+      await createCitizenUpdate(requestId, input, key);
+
+      await queryClient.invalidateQueries({ queryKey: ['citizen-updates', requestId] });
+
       setSuccess(true);
       reset({ trackingCode, updateType: 'NOTE', updatePayload: {} });
       onSuccess?.();
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       if (e?.status === 403) {
-        setApiError('Tracking code is invalid');
+        setApiError('รหัสติดตามไม่ถูกต้อง');
       } else if (e?.status === 409) {
-        setApiError('This request is already resolved/cancelled');
+        setApiError('คำขอนี้อยู่ในสถานะสิ้นสุดแล้ว ไม่สามารถอัปเดตเพิ่มเติมได้');
+      } else if (e?.status === 422) {
+        setApiError('ข้อมูลไม่ผ่านเงื่อนไขการตรวจสอบ กรุณาตรวจสอบประเภทข้อมูลและค่าที่กรอกอีกครั้ง');
       } else {
-        setApiError(e?.message ?? 'Failed to submit update. Please try again.');
+        setApiError(e?.message ?? 'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
       }
     }
   };
 
   return (
     <Card>
-      <CardHeader title="Send Additional Information" />
+      <CardHeader title="ส่งข้อมูลเพิ่มเติม" />
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          {apiError && (
-            <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />
-          )}
+          <input type="hidden" {...register('trackingCode')} />
+
+          {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
+
           {success && (
-            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-              Update submitted successfully
+            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              ส่งข้อมูลเพิ่มเติมสำเร็จแล้ว
             </div>
           )}
 
@@ -100,7 +145,7 @@ export function CitizenUpdateForm({
             control={control}
             render={({ field }) => (
               <Select
-                label="Update Type"
+                label="ประเภทข้อมูลที่ต้องการอัปเดต"
                 required
                 options={UPDATE_TYPE_OPTIONS}
                 value={field.value}
@@ -116,15 +161,12 @@ export function CitizenUpdateForm({
               control={control}
               render={({ field }) => (
                 <Textarea
-                  label="Note"
+                  label="หมายเหตุ"
                   required
-                  placeholder="Enter note..."
+                  placeholder="ระบุข้อมูลเพิ่มเติม..."
                   value={(field.value as string) ?? ''}
                   onChange={field.onChange}
-                  error={
-                    (errors.updatePayload as Record<string, { message?: string }>)
-                      ?.note?.message
-                  }
+                  error={(errors.updatePayload as Record<string, { message?: string }>)?.note?.message}
                 />
               )}
             />
@@ -136,16 +178,12 @@ export function CitizenUpdateForm({
               control={control}
               render={({ field }) => (
                 <Textarea
-                  label="Location Details"
+                  label="รายละเอียดตำแหน่ง"
                   required
-                  placeholder="Describe current location..."
+                  placeholder="ระบุตำแหน่งปัจจุบันให้ละเอียดขึ้น"
                   value={(field.value as string) ?? ''}
                   onChange={field.onChange}
-                  error={
-                    (
-                      errors.updatePayload as Record<string, { message?: string }>
-                    )?.locationDetails?.message
-                  }
+                  error={(errors.updatePayload as Record<string, { message?: string }>)?.locationDetails?.message}
                 />
               )}
             />
@@ -157,17 +195,14 @@ export function CitizenUpdateForm({
               control={control}
               render={({ field }) => (
                 <Input
-                  label="People Count"
+                  label="จำนวนผู้ประสบภัย"
                   required
                   type="number"
                   min={1}
+                  step={1}
                   value={(field.value as number | string) ?? ''}
                   onChange={field.onChange}
-                  error={
-                    (
-                      errors.updatePayload as Record<string, { message?: string }>
-                    )?.peopleCount?.message
-                  }
+                  error={(errors.updatePayload as Record<string, { message?: string }>)?.peopleCount?.message}
                 />
               )}
             />
@@ -175,28 +210,19 @@ export function CitizenUpdateForm({
 
           {updateType === 'SPECIAL_NEEDS' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Special Needs <span className="text-red-500">*</span>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                ความต้องการพิเศษ <span className="text-red-500">*</span>
               </label>
               <Controller
                 name="updatePayload.specialNeeds"
                 control={control}
                 render={({ field }) => (
-                  <SpecialNeedsInput
-                    value={field.value as string | undefined}
-                    onChange={field.onChange}
-                  />
+                  <SpecialNeedsInput value={field.value as string | undefined} onChange={field.onChange} />
                 )}
               />
-              {(
-                errors.updatePayload as Record<string, { message?: string }>
-              )?.specialNeeds?.message && (
+              {(errors.updatePayload as Record<string, { message?: string }>)?.specialNeeds?.message && (
                 <p className="mt-1 text-sm text-red-600">
-                  {
-                    (
-                      errors.updatePayload as Record<string, { message?: string }>
-                    ).specialNeeds?.message
-                  }
+                  {(errors.updatePayload as Record<string, { message?: string }>).specialNeeds?.message}
                 </p>
               )}
             </div>
@@ -204,20 +230,17 @@ export function CitizenUpdateForm({
 
           {updateType === 'CONTACT_INFO' && (
             <div className="space-y-3">
+              <p className="text-xs text-gray-500">กรอกอย่างน้อย 1 ช่อง (ชื่อผู้ติดต่อ หรือ เบอร์โทรศัพท์)</p>
               <Controller
                 name="updatePayload.contactName"
                 control={control}
                 render={({ field }) => (
                   <Input
-                    label="Contact Name"
-                    placeholder="Full name"
+                    label="ชื่อผู้ติดต่อ"
+                    placeholder="ชื่อ-นามสกุล"
                     value={(field.value as string) ?? ''}
                     onChange={field.onChange}
-                    error={
-                      (
-                        errors.updatePayload as Record<string, { message?: string }>
-                      )?.contactName?.message
-                    }
+                    error={(errors.updatePayload as Record<string, { message?: string }>)?.contactName?.message}
                   />
                 )}
               />
@@ -226,30 +249,20 @@ export function CitizenUpdateForm({
                 control={control}
                 render={({ field }) => (
                   <Input
-                    label="Contact Phone"
+                    label="เบอร์โทรศัพท์"
                     type="tel"
                     placeholder="0812345678"
                     value={(field.value as string) ?? ''}
                     onChange={field.onChange}
-                    error={
-                      (
-                        errors.updatePayload as Record<string, { message?: string }>
-                      )?.contactPhone?.message
-                    }
+                    error={(errors.updatePayload as Record<string, { message?: string }>)?.contactPhone?.message}
                   />
                 )}
               />
             </div>
           )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            loading={isSubmitting}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Update'}
+          <Button type="submit" variant="primary" className="w-full" loading={isSubmitting} disabled={isSubmitting}>
+            {isSubmitting ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลเพิ่มเติม'}
           </Button>
         </form>
       </CardContent>

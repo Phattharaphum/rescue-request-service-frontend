@@ -2,9 +2,8 @@ import { z } from 'zod';
 
 export const phoneSchema = z
   .string()
-  .min(10, 'หมายเลขโทรศัพท์ต้องมีอย่างน้อย 10 หลัก')
-  .max(15, 'หมายเลขโทรศัพท์ต้องไม่เกิน 15 หลัก')
-  .regex(/^\d{10,15}$/, 'หมายเลขโทรศัพท์ต้องเป็นตัวเลขเท่านั้น');
+  .trim()
+  .regex(/^\d{10}$/, 'หมายเลขโทรศัพท์ต้องเป็นตัวเลข 10 หลัก');
 
 export const limitSchema = z.coerce
   .number()

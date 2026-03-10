@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {
   User,
@@ -17,6 +17,7 @@ import { LocationSummary } from '@/components/citizen/location-summary';
 import { CitizenStatusResponse } from '@/types/rescue';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils/date';
 import { formatRequestType, formatPriorityLevel } from '@/lib/utils/format';
+import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 
 const PRIORITY_VARIANT_MAP = {
   LOW: 'gray',
@@ -30,6 +31,14 @@ interface CitizenStatusCardProps {
 }
 
 export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
+  const parsedSpecialNeeds = parseSpecialNeeds(data.specialNeeds);
+  const specialNeedChips =
+    parsedSpecialNeeds.mode === 'chip'
+      ? (parsedSpecialNeeds.items ?? [])
+      : parsedSpecialNeeds.text
+        ? [parsedSpecialNeeds.text]
+        : [];
+
   return (
     <div className="space-y-4">
       {/* Status Overview */}
@@ -90,7 +99,25 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
             />
             {data.specialNeeds && (
               <div className="sm:col-span-2">
-                <InfoItem label="ความต้องการพิเศษ" value={data.specialNeeds} />
+                <InfoItem
+                  label="ความต้องการพิเศษ"
+                  value={
+                    specialNeedChips.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {specialNeedChips.map((item) => (
+                          <span
+                            key={item}
+                            className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      '-'
+                    )
+                  }
+                />
               </div>
             )}
           </div>
