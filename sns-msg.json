@@ -1,0 +1,1 @@
+﻿{"metadata":{"eventType":"rescue-request.created","eventId":"evt-2","timestamp":"2026-03-10T14:30:00Z","partitionKey":"REQ-2","schemaVersion":"1.0","source":"rescue-request-service"},"body":{"requestId":"REQ-2"}}

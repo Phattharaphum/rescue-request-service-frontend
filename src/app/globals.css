@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-google-sans: 'Google Sans', 'Noto Sans Thai', sans-serif;
+}
+
+* {
+  font-family: var(--font-google-sans);
+  border-color: rgb(229 231 235);
+}
+
+body {
+  font-family: var(--font-google-sans);
+}
+
+button {
+  cursor: pointer;
+}
