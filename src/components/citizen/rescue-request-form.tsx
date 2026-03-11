@@ -1,9 +1,10 @@
+// src/components/citizen/rescue-request-form.tsx
 'use client';
 
 import { useRef, useState } from 'react';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LocateFixed, Sparkles } from 'lucide-react';
+import { LocateFixed, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +22,7 @@ const REQUEST_TYPE_OPTIONS = [
   { value: 'EVACUATION', label: 'อพยพออกจากพื้นที่' },
   { value: 'SUPPLY', label: 'อาหาร / น้ำดื่ม / เสบียง' },
   { value: 'MEDICAL', label: 'การแพทย์ / ยา / ผู้ป่วยฉุกเฉิน' },
-  { value: 'OTHER', label: 'เครื่องใช้จำเป็น' },
+  { value: 'OTHER', label: 'เครื่องใช้จำเป็นอื่นๆ' },
 ];
 
 const INCIDENT_OPTIONS = INCIDENTS.map((i) => ({ value: i.value, label: i.label }));
@@ -69,6 +70,7 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
       sourceChannel: 'WEB',
     },
   });
+
   const mockGpsLocation = () => {
     setIsMockingLocation(true);
 
@@ -78,7 +80,7 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
     setValue('latitude', lat, { shouldDirty: true, shouldValidate: true });
     setValue('longitude', lng, { shouldDirty: true, shouldValidate: true });
 
-    window.setTimeout(() => setIsMockingLocation(false), 400);
+    window.setTimeout(() => setIsMockingLocation(false), 500);
   };
 
   const onSubmit = async (data: RescueRequestFormValues) => {
@@ -107,7 +109,7 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
       }
 
       if (!result) {
-        throw lastError ?? new Error('Failed to create rescue request');
+        throw lastError ?? new Error('ไม่สามารถบันทึกคำขอได้');
       }
 
       onSuccess({
@@ -118,10 +120,10 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
       });
     } catch (err: unknown) {
       if (isTransactionConflict(err)) {
-        setApiError('System is busy processing requests. Please submit again in 2-3 seconds.');
+        setApiError('ระบบกำลังประมวลผลคำขอจำนวนมาก กรุณากดส่งอีกครั้งใน 2-3 วินาที');
       } else {
         const e = err as { message?: string };
-        setApiError(e?.message ?? 'Request failed. Please try again.');
+        setApiError(e?.message ?? 'เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง');
       }
     } finally {
       submitLockRef.current = false;
@@ -129,211 +131,212 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
       {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
 
-      <div className="rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 to-cyan-50 px-5 py-4">
+      {/* Info Banner */}
+      <div className="rounded-2xl border border-blue-100 bg-blue-50/50 px-5 py-4">
         <div className="flex items-start gap-3">
-          <Sparkles size={18} className="mt-0.5 text-teal-600" />
+          <Info size={20} className="mt-0.5 shrink-0 text-blue-600" />
           <div>
-            <p className="text-sm font-semibold text-teal-900">แจ้งข้อมูลให้ครบเพื่อช่วยให้ทีมเข้าถึงได้เร็วขึ้น</p>
-            <p className="mt-1 text-sm text-teal-800">
-              เลือกประเภทคำขอ, กดดึงพิกัด, และกรอกข้อมูลติดต่อให้ถูกต้อง
+            <p className="text-sm font-bold text-blue-900">ระบุข้อมูลให้ครบถ้วนเพื่อความรวดเร็ว</p>
+            <p className="mt-1 text-sm text-blue-700 leading-relaxed">
+              การระบุตำแหน่งที่ชัดเจนและข้อมูลติดต่อที่ถูกต้อง จะช่วยให้ทีมเจ้าหน้าที่เข้าช่วยเหลือได้ตรงจุดและรวดเร็วที่สุด
             </p>
           </div>
         </div>
       </div>
 
-      <Card className="border-teal-100">
-        <CardHeader title="ข้อมูลเหตุการณ์" className="bg-teal-50/70" />
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Controller
-              name="incidentId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  label="เหตุการณ์"
-                  required
-                  options={INCIDENT_OPTIONS}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={errors.incidentId?.message}
-                />
-              )}
-            />
-            <Controller
-              name="requestType"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  label="ประเภทคำขอช่วยเหลือ"
-                  required
-                  options={REQUEST_TYPE_OPTIONS}
-                  placeholder="กรุณาเลือกประเภทคำขอ"
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  error={errors.requestType?.message}
-                />
-              )}
-            />
-            <div className="sm:col-span-2">
-              <Textarea
-                label="อธิบายสถานการณ์"
-                required
-                placeholder="อธิบายสถานการณ์ฉุกเฉินโดยละเอียด..."
-                {...register('description')}
-                error={errors.description?.message}
-              />
-            </div>
-            <Input
-              label="จำนวนผู้ประสบภัย"
-              required
-              type="number"
-              min={1}
-              {...register('peopleCount')}
-              error={errors.peopleCount?.message}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-teal-100">
-        <CardHeader title="ตำแหน่งที่เกิดเหตุ" className="bg-teal-50/70" />
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Button
-                type="button"
-                variant="outline"
-                leftIcon={<LocateFixed size={16} />}
-                loading={isMockingLocation}
-                onClick={mockGpsLocation}
-                className="w-full sm:w-auto"
-              >
-                {isMockingLocation ? 'กำลังดึงตำแหน่งจำลอง...' : 'ดึงตำแหน่ง GPS (จำลอง)'}
-              </Button>
-            </div>
-            <Input
-              label="ละติจูด"
-              required
-              type="number"
-              step="any"
-              readOnly
-              placeholder="กดปุ่มเพื่อดึงตำแหน่ง"
-              {...register('latitude')}
-              error={errors.latitude?.message}
-            />
-            <Input
-              label="ลองจิจูด"
-              required
-              type="number"
-              step="any"
-              readOnly
-              placeholder="กดปุ่มเพื่อดึงตำแหน่ง"
-              {...register('longitude')}
-              error={errors.longitude?.message}
-            />
-            <div className="sm:col-span-2">
-              <Textarea
-                label="รายละเอียดสถานที่"
-                placeholder="เช่น บ้านเลขที่ ชื่ออาคาร จุดสังเกต..."
-                {...register('locationDetails')}
-                error={errors.locationDetails?.message}
-                rows={2}
-              />
-            </div>
-            <Input
-              label="จังหวัด"
-              placeholder="เช่น กรุงเทพมหานคร"
-              {...register('province')}
-              error={errors.province?.message}
-            />
-            <Input
-              label="อำเภอ/เขต"
-              placeholder="เช่น บางรัก"
-              {...register('district')}
-              error={errors.district?.message}
-            />
-            <Input
-              label="ตำบล/แขวง"
-              placeholder="เช่น สีลม"
-              {...register('subdistrict')}
-              error={errors.subdistrict?.message}
-            />
-            <Input
-              label="ที่อยู่"
-              placeholder="เลขที่ ถนน ซอย..."
-              {...register('addressLine')}
-              error={errors.addressLine?.message}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-teal-100">
-        <CardHeader title="ข้อมูลผู้ติดต่อ" className="bg-teal-50/70" />
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="ชื่อผู้ติดต่อ"
-              required
-              placeholder="ชื่อ-นามสกุล"
-              {...register('contactName')}
-              error={errors.contactName?.message}
-            />
-            <Input
-              label="เบอร์โทรศัพท์"
-              required
-              type="tel"
-              placeholder="0812345678"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              maxLength={10}
-              {...register('contactPhone', {
-                onChange: (event) => {
-                  const digits = String(event.target.value ?? '')
-                    .replace(/\D/g, '')
-                    .slice(0, 10);
-                  event.target.value = digits;
-                },
-              })}
-              error={errors.contactPhone?.message}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-teal-100">
-        <CardHeader title="ความต้องการพิเศษ (ถ้ามี)" className="bg-teal-50/70" />
-        <CardContent>
+      {/* Section 1: Incident Info */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">1. ข้อมูลเหตุการณ์</h2>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Controller
-            name="specialNeeds"
+            name="incidentId"
             control={control}
             render={({ field }) => (
-              <SpecialNeedsInput
+              <Select
+                label="เหตุการณ์ภัยพิบัติ"
+                required
+                options={INCIDENT_OPTIONS}
                 value={field.value}
                 onChange={field.onChange}
+                error={errors.incidentId?.message}
               />
             )}
           />
-          {errors.specialNeeds && (
-            <p className="mt-1 text-sm text-red-600">{errors.specialNeeds.message}</p>
-          )}
-        </CardContent>
-      </Card>
+          <Controller
+            name="requestType"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="ประเภทความช่วยเหลือที่ต้องการ"
+                required
+                options={REQUEST_TYPE_OPTIONS}
+                placeholder="กรุณาเลือกประเภทคำขอ"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                error={errors.requestType?.message}
+              />
+            )}
+          />
+          <div className="sm:col-span-2">
+            <Textarea
+              label="อธิบายสถานการณ์โดยละเอียด"
+              required
+              placeholder="เช่น ระดับน้ำสูงประมาณ 1 เมตร, มีผู้ป่วยติดเตียงต้องการอพยพด่วน..."
+              {...register('description')}
+              error={errors.description?.message}
+              rows={3}
+            />
+          </div>
+          <Input
+            label="จำนวนผู้ประสบภัย (คน)"
+            required
+            type="number"
+            min={1}
+            {...register('peopleCount')}
+            error={errors.peopleCount?.message}
+          />
+        </div>
+      </section>
+
+      {/* Section 2: Location */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-2 gap-3">
+          <h2 className="text-lg font-bold text-gray-900">2. ตำแหน่งที่เกิดเหตุ</h2>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            leftIcon={<LocateFixed size={16} />}
+            loading={isMockingLocation}
+            onClick={mockGpsLocation}
+            className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+          >
+            {isMockingLocation ? 'กำลังค้นหาตำแหน่ง...' : 'ดึงตำแหน่ง GPS ปัจจุบัน (จำลอง)'}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Input
+            label="ละติจูด (Latitude)"
+            required
+            type="number"
+            step="any"
+            readOnly
+            className="bg-gray-50 text-gray-500"
+            placeholder="กดปุ่มเพื่อดึงตำแหน่งอัตโนมัติ"
+            {...register('latitude')}
+            error={errors.latitude?.message}
+          />
+          <Input
+            label="ลองจิจูด (Longitude)"
+            required
+            type="number"
+            step="any"
+            readOnly
+            className="bg-gray-50 text-gray-500"
+            placeholder="กดปุ่มเพื่อดึงตำแหน่งอัตโนมัติ"
+            {...register('longitude')}
+            error={errors.longitude?.message}
+          />
+          <div className="sm:col-span-2">
+            <Textarea
+              label="จุดสังเกตเพิ่มเติม (ถ้ามี)"
+              placeholder="เช่น บ้านสองชั้นสีฟ้า ตรงข้ามวัด..."
+              {...register('locationDetails')}
+              error={errors.locationDetails?.message}
+              rows={2}
+            />
+          </div>
+          <Input
+            label="ที่อยู่ / หมู่บ้าน / ซอย"
+            placeholder="เช่น 123/45 ซอยสุขใจ ถนนร่วมใจ..."
+            {...register('addressLine')}
+            error={errors.addressLine?.message}
+          />
+          <Input
+            label="ตำบล / แขวง"
+            placeholder="เช่น สีลม"
+            {...register('subdistrict')}
+            error={errors.subdistrict?.message}
+          />
+          <Input
+            label="อำเภอ / เขต"
+            placeholder="เช่น บางรัก"
+            {...register('district')}
+            error={errors.district?.message}
+          />
+          <Input
+            label="จังหวัด"
+            placeholder="เช่น กรุงเทพมหานคร"
+            {...register('province')}
+            error={errors.province?.message}
+          />
+        </div>
+      </section>
+
+      {/* Section 3: Contact & Special Needs */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">3. ข้อมูลผู้ติดต่อ</h2>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Input
+            label="ชื่อ-นามสกุล ผู้ติดต่อ"
+            required
+            placeholder="เช่น สมชาย ใจดี"
+            {...register('contactName')}
+            error={errors.contactName?.message}
+          />
+          <Input
+            label="เบอร์โทรศัพท์ที่ติดต่อได้"
+            required
+            type="tel"
+            placeholder="เช่น 0812345678"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            maxLength={10}
+            {...register('contactPhone', {
+              onChange: (event) => {
+                const digits = String(event.target.value ?? '')
+                  .replace(/\D/g, '')
+                  .slice(0, 10);
+                event.target.value = digits;
+              },
+            })}
+            error={errors.contactPhone?.message}
+          />
+          <div className="sm:col-span-2 mt-2">
+            <Controller
+              name="specialNeeds"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-gray-700">ความต้องการพิเศษ (ถ้ามี)</label>
+                  <SpecialNeedsInput
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                  {errors.specialNeeds && (
+                    <p className="text-sm text-red-500">{errors.specialNeeds.message}</p>
+                  )}
+                </div>
+              )}
+            />
+          </div>
+        </div>
+      </section>
 
       <input type="hidden" value="WEB" {...register('sourceChannel')} />
 
-      <div className="flex justify-end">
+      <div className="pt-6 border-t border-gray-100 flex justify-end">
         <Button
           type="submit"
-          variant="primary"
+          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 shadow-sm transition-all"
           size="lg"
           loading={isSubmitting}
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'กำลังส่งคำขอ...' : 'ส่งคำขอช่วยเหลือ'}
+          {isSubmitting ? 'กำลังส่งคำขอ...' : 'ยืนยันการส่งคำขอความช่วยเหลือ'}
         </Button>
       </div>
     </form>

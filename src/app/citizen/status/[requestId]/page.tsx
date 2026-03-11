@@ -1,3 +1,4 @@
+// src/app/citizen/status/[requestId]/page.tsx
 'use client';
 
 import React from 'react';
@@ -58,9 +59,9 @@ function EventTimeline({ events }: { events: StatusEvent[] }) {
   if (orderedEvents.length === 0) {
     return (
       <Card>
-        <CardHeader title="ไทม์ไลน์สถานะ" />
+        <CardHeader title="ประวัติการดำเนินการ" />
         <CardContent>
-          <p className="text-sm text-gray-500">ยังไม่มีประวัติการเปลี่ยนสถานะ</p>
+          <p className="text-sm text-gray-500 text-center py-4">ยังไม่มีประวัติการเปลี่ยนสถานะ</p>
         </CardContent>
       </Card>
     );
@@ -68,60 +69,61 @@ function EventTimeline({ events }: { events: StatusEvent[] }) {
 
   return (
     <Card>
-      <CardHeader title="ไทม์ไลน์สถานะ" />
+      <CardHeader title="ประวัติการดำเนินการ" />
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-6 mt-2">
           {orderedEvents.map((event, idx) => (
-            <div key={event.eventId} className="relative pl-5">
+            <div key={event.eventId} className="relative pl-6">
               {idx < orderedEvents.length - 1 && (
-                <div className="absolute bottom-[-18px] left-[7px] top-4 w-px bg-gray-200" />
+                <div className="absolute -bottom-6 left-2.25 top-6 w-px bg-blue-100" />
               )}
-              <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-blue-500 bg-white" />
+              <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-white bg-blue-500 shadow-sm" />
 
-              <div className="space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <div className="space-y-2.5 rounded-xl border border-gray-100 bg-gray-50/50 p-4 transition-colors hover:bg-gray-50">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={event.newStatus} size="sm" dot />
-                  <span className="text-xs text-gray-500">v{event.version}</span>
-                  <span className="ml-auto text-xs text-gray-500">{formatDateTime(event.occurredAt)}</span>
+                  <span className="text-xs font-medium text-gray-400">ครั้งที่ {event.version}</span>
+                  <span className="ml-auto text-xs font-medium text-gray-500">{formatDateTime(event.occurredAt)}</span>
                 </div>
 
-                <div className="text-sm text-gray-700">
+                <div className="text-sm font-medium text-gray-900">
                   {event.previousStatus ? (
-                    <span>
-                      {formatStatus(event.previousStatus)} → {formatStatus(event.newStatus)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 line-through">{formatStatus(event.previousStatus)}</span>
+                      <span className="text-gray-400">→</span>
+                      <span className="text-blue-700">{formatStatus(event.newStatus)}</span>
+                    </div>
                   ) : (
-                    <span>เริ่มต้นคำขอ: {formatStatus(event.newStatus)}</span>
+                    <span className="text-blue-700">เริ่มต้นคำขอ: {formatStatus(event.newStatus)}</span>
                   )}
                 </div>
 
                 {idx > 0 && (
-                  <p className="text-xs text-blue-700">
-                    ใช้เวลาเปลี่ยนจากสถานะก่อนหน้า:{' '}
-                    {formatDurationBetween(orderedEvents[idx - 1].occurredAt, event.occurredAt)}
+                  <p className="text-xs font-medium text-gray-500">
+                    ใช้เวลาดำเนินการ: <span className="text-gray-700">{formatDurationBetween(orderedEvents[idx - 1].occurredAt, event.occurredAt)}</span>
                   </p>
                 )}
 
                 {(event.changeReason ||
                   event.responderUnitId ||
                   (event.priorityScore !== null && event.priorityScore !== undefined)) && (
-                  <div className="space-y-1 text-xs text-gray-600">
-                    {event.changeReason && <p>เหตุผล: {event.changeReason}</p>}
-                    {event.responderUnitId && <p>หน่วยปฏิบัติการ: {event.responderUnitId}</p>}
+                  <div className="space-y-1.5 rounded-lg bg-white p-3 text-xs text-gray-600 shadow-sm border border-gray-100">
+                    {event.changeReason && <p><span className="font-semibold text-gray-900">เหตุผล:</span> {event.changeReason}</p>}
+                    {event.responderUnitId && <p><span className="font-semibold text-gray-900">หน่วยปฏิบัติการ:</span> {event.responderUnitId}</p>}
                     {event.priorityScore !== null && event.priorityScore !== undefined && (
-                      <p>คะแนนความเร่งด่วน: {event.priorityScore}</p>
+                      <p><span className="font-semibold text-gray-900">คะแนนความเร่งด่วน:</span> {event.priorityScore}</p>
                     )}
                   </div>
                 )}
 
                 {event.meta && Object.keys(event.meta).length > 0 && (
-                  <div className="rounded-md border border-gray-200 bg-white p-2 text-xs text-gray-700">
-                    <p className="mb-1 font-medium text-gray-600">ข้อมูลเพิ่มเติม</p>
-                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  <div className="rounded-lg border border-gray-100 bg-white p-3 text-xs text-gray-700 shadow-sm">
+                    <p className="mb-2 font-bold text-gray-900 border-b border-gray-50 pb-1">ข้อมูลเชิงลึกเพิ่มเติม</p>
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       {Object.entries(event.meta).map(([key, value]) => (
-                        <p key={key}>
-                          <span className="text-gray-500">{key}: </span>
-                          <span>{formatValue(value)}</span>
+                        <p key={key} className="truncate">
+                          <span className="font-medium text-gray-500">{key}: </span>
+                          <span className="text-gray-900">{formatValue(value)}</span>
                         </p>
                       ))}
                     </div>
@@ -136,19 +138,18 @@ function EventTimeline({ events }: { events: StatusEvent[] }) {
   );
 }
 
-
 function SpecialNeedsChips({ value }: { value: unknown }) {
   const parsed = parseSpecialNeeds(typeof value === 'string' ? value : '');
   const chips = parsed.mode === 'chip' ? (parsed.items ?? []) : parsed.text ? [parsed.text] : [];
 
-  if (chips.length === 0) return <span className="text-gray-500">-</span>;
+  if (chips.length === 0) return <span className="text-gray-400">-</span>;
 
   return (
     <div className="flex flex-wrap gap-2">
       {chips.map((chip) => (
         <span
           key={chip}
-          className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
+          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
         >
           {chip}
         </span>
@@ -164,29 +165,29 @@ function UpdatePayloadSummary({ item }: { item: CitizenUpdateItem }) {
     case 'SPECIAL_NEEDS':
       return <SpecialNeedsChips value={payload.specialNeeds} />;
     case 'NOTE':
-      return <p>{formatValue(payload.note)}</p>;
+      return <p className="text-gray-700">{formatValue(payload.note)}</p>;
     case 'LOCATION_DETAILS':
-      return <p>{formatValue(payload.locationDetails)}</p>;
+      return <p className="text-gray-700">{formatValue(payload.locationDetails)}</p>;
     case 'PEOPLE_COUNT':
-      return <p>People affected: {formatValue(payload.peopleCount)}</p>;
+      return <p className="text-gray-700">จำนวนผู้ประสบภัย: <span className="font-semibold">{formatValue(payload.peopleCount)}</span> คน</p>;
     case 'CONTACT_INFO':
       return (
-        <div className="space-y-1">
-          <p>Contact name: {formatValue(payload.contactName)}</p>
-          <p>Contact phone: {formatValue(payload.contactPhone)}</p>
+        <div className="space-y-1.5 text-gray-700">
+          <p>ชื่อผู้ติดต่อ: <span className="font-semibold">{formatValue(payload.contactName)}</span></p>
+          <p>เบอร์โทรศัพท์: <span className="font-semibold">{formatValue(payload.contactPhone)}</span></p>
         </div>
       );
     default:
-      if (Object.entries(payload).length === 0) return <p>-</p>;
+      if (Object.entries(payload).length === 0) return <p className="text-gray-400">-</p>;
       return (
-        <>
+        <div className="space-y-1">
           {Object.entries(payload).map(([key, value]) => (
-            <p key={key}>
-              <span className="text-gray-500">{key}: </span>
+            <p key={key} className="text-gray-700">
+              <span className="text-gray-500 font-medium">{key}: </span>
               <span>{formatValue(value)}</span>
             </p>
           ))}
-        </>
+        </div>
       );
   }
 }
@@ -194,23 +195,24 @@ function UpdatePayloadSummary({ item }: { item: CitizenUpdateItem }) {
 function UpdateItemsSection({ items }: { items: CitizenUpdateItem[] }) {
   return (
     <Card>
-      <CardHeader title="Additional Information From Reporter" />
+      <CardHeader title="ข้อมูลเพิ่มเติมจากผู้แจ้ง" />
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-sm text-gray-500">No additional updates yet</p>
+          <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            ยังไม่มีการแจ้งข้อมูลเพิ่มเติม
+          </p>
         ) : (
           <div className="space-y-3">
             {items.map((item) => (
-              <div key={item.updateId} className="space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <div key={item.updateId} className="space-y-3 rounded-xl border border-blue-100 bg-blue-50/30 p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="blue" size="sm">
                     {formatUpdateType(item.updateType)}
                   </Badge>
-                  <span className="text-xs text-gray-500">{item.updateId}</span>
-                  <span className="ml-auto text-xs text-gray-500">{formatDateTime(item.createdAt)}</span>
+                  <span className="ml-auto text-xs font-medium text-gray-500">{formatDateTime(item.createdAt)}</span>
                 </div>
 
-                <div className="space-y-1 rounded-md border border-gray-200 bg-white p-2 text-sm text-gray-700">
+                <div className="rounded-lg border border-white bg-white p-3 text-sm shadow-sm">
                   <UpdatePayloadSummary item={item} />
                 </div>
               </div>
@@ -251,28 +253,29 @@ export default function CitizenStatusPage({ params }: PageProps) {
 
   return (
     <AppShell variant="citizen">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6 py-6">
         <PageHeader
           title="สถานะคำขอช่วยเหลือ"
           breadcrumbs={[
             { label: 'หน้าหลัก', href: '/' },
-            { label: 'ค้นหาสถานะคำขอ', href: '/citizen/track' },
+            { label: 'ค้นหาสถานะ', href: '/citizen/track' },
             { label: 'สถานะคำขอ' },
           ]}
           actions={
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              รีเฟรช
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="bg-white rounded-xl shadow-sm">
+              รีเฟรชข้อมูล
             </Button>
           }
         />
 
-        {isLoading && <LoadingState message="กำลังโหลดสถานะคำขอ..." />}
-        {error && <ErrorAlert message="ไม่สามารถโหลดสถานะคำขอได้" />}
+        {isLoading && <LoadingState message="กำลังโหลดสถานะล่าสุดของคุณ..." />}
+        {error && <ErrorAlert message="ไม่สามารถโหลดข้อมูลสถานะคำขอได้ กรุณาลองใหม่อีกครั้ง" />}
+        
         {data && (
-          <>
+          <div className="space-y-6">
             <CitizenStatusCard data={data} />
             <EventTimeline events={data.recentEvents ?? []} />
-          </>
+          </div>
         )}
 
         {data && isDetailLoading && <LoadingState message="กำลังโหลดข้อมูลเพิ่มเติม..." />}
@@ -280,10 +283,10 @@ export default function CitizenStatusPage({ params }: PageProps) {
         {data && !isDetailLoading && !detailError && <UpdateItemsSection items={updateItems} />}
 
         {data && (
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href={updatesHref} className="flex-1">
-              <Button className="w-full" variant="primary">
-                แจ้งรายละเอียดเพิ่มเติม
+          <div className="pt-4 border-t border-gray-200">
+            <Link href={updatesHref} className="block w-full">
+              <Button className="w-full shadow-md rounded-xl" variant="primary" size="lg">
+                แจ้งรายละเอียดอัปเดตเพิ่มเติม
               </Button>
             </Link>
           </div>

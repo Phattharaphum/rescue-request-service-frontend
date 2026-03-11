@@ -1,3 +1,4 @@
+// src\components\shared\confirm-dialog.tsx
 'use client';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';

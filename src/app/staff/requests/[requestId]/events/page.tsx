@@ -1,3 +1,4 @@
+// src\app\staff\requests\[requestId]\events\page.tsx
 'use client';
 import React from 'react';
 import { AppShell } from '@/components/layout/app-shell';

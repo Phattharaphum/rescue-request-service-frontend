@@ -1,3 +1,4 @@
+// src\lib\hooks\use-incident.ts
 'use client';
 import { useState } from 'react';
 import { INCIDENTS, DEFAULT_INCIDENT_ID, Incident } from '@/lib/config/incidents';

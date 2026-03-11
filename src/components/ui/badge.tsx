@@ -1,3 +1,4 @@
+// src/components/ui/badge.tsx
 import React from 'react';
 import { cn } from '@/lib/utils/cn';
 
@@ -23,20 +24,20 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-700',
-  gray: 'bg-gray-100 text-gray-700',
-  amber: 'bg-amber-100 text-amber-800',
-  blue: 'bg-blue-100 text-blue-800',
-  purple: 'bg-purple-100 text-purple-800',
-  green: 'bg-green-100 text-green-800',
-  red: 'bg-red-100 text-red-800',
-  teal: 'bg-teal-100 text-teal-800',
-  orange: 'bg-orange-100 text-orange-800',
+  default: 'bg-gray-100 text-gray-800 border border-gray-200',
+  gray: 'bg-gray-100 text-gray-800 border border-gray-200',
+  amber: 'bg-amber-50 text-amber-800 border border-amber-200',
+  blue: 'bg-blue-50 text-blue-800 border border-blue-200',
+  purple: 'bg-purple-50 text-purple-800 border border-purple-200',
+  green: 'bg-green-50 text-green-800 border border-green-200',
+  red: 'bg-red-50 text-red-800 border border-red-200',
+  teal: 'bg-teal-50 text-teal-800 border border-teal-200',
+  orange: 'bg-orange-50 text-orange-800 border border-orange-200',
 };
 
 const dotColorClasses: Record<BadgeVariant, string> = {
-  default: 'bg-gray-500',
-  gray: 'bg-gray-500',
+  default: 'bg-gray-400',
+  gray: 'bg-gray-400',
   amber: 'bg-amber-500',
   blue: 'bg-blue-500',
   purple: 'bg-purple-500',
@@ -47,8 +48,8 @@ const dotColorClasses: Record<BadgeVariant, string> = {
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-xs',
-  md: 'px-2.5 py-1 text-sm',
+  sm: 'px-2.5 py-0.5 text-xs',
+  md: 'px-3 py-1 text-sm',
 };
 
 export function Badge({
@@ -61,7 +62,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 font-medium rounded-full',
+        'inline-flex items-center gap-2 font-bold rounded-full shadow-sm',
         variantClasses[variant],
         sizeClasses[size],
         className,

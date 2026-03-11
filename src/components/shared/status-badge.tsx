@@ -1,4 +1,6 @@
+// src/components/shared/status-badge.tsx
 'use client';
+
 import { Badge } from '@/components/ui/badge';
 import { RequestStatus } from '@/types/rescue';
 import { formatStatus } from '@/lib/utils/format';
@@ -20,7 +22,11 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, size = 'md', dot = false }: StatusBadgeProps) {
   return (
-    <Badge variant={STATUS_VARIANT_MAP[status]} size={size} dot={dot}>
+    <Badge 
+      variant={STATUS_VARIANT_MAP[status] ?? 'gray'} 
+      size={size} 
+      dot={dot}
+    >
       {formatStatus(status)}
     </Badge>
   );

@@ -1,3 +1,4 @@
+// src/app/citizen/track/page.tsx
 'use client';
 
 import { Suspense, useEffect } from 'react';
@@ -28,19 +29,20 @@ function CitizenTrackPageContent() {
 
   return (
     <AppShell variant="citizen">
-      <div className="mx-auto max-w-lg space-y-6">
+      <div className="mx-auto max-w-2xl space-y-8 py-6">
         <PageHeader
-          title="ค้นหาสถานะคำขอ"
-          breadcrumbs={[{ label: 'หน้าหลัก', href: '/' }, { label: 'ค้นหาสถานะคำขอ' }]}
+          title="ตรวจสอบสถานะคำขอ"
+          breadcrumbs={[{ label: 'หน้าหลัก', href: '/' }, { label: 'ตรวจสอบสถานะ' }]}
         />
 
-        <div className="flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <Info size={20} className="mt-0.5 shrink-0 text-blue-600" />
-          <div className="space-y-1 text-sm text-blue-800">
-            <p className="font-medium">ข้อมูลที่ต้องใช้ในการค้นหา</p>
-            <ul className="list-inside list-disc space-y-1 text-blue-700">
-              <li>เบอร์โทรศัพท์ที่ใช้ในการแจ้งคำขอ</li>
-              <li>รหัสติดตาม (Tracking Code) ที่ได้รับหลังแจ้งคำขอ</li>
+        {/* Info Banner */}
+        <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+          <Info size={24} className="mt-0.5 shrink-0 text-blue-600" />
+          <div className="space-y-1.5 text-sm text-blue-900">
+            <p className="font-bold text-base">ข้อมูลที่ต้องใช้ในการค้นหา</p>
+            <ul className="list-inside list-disc space-y-1 text-blue-700 leading-relaxed">
+              <li><span className="font-medium text-blue-800">เบอร์โทรศัพท์</span> ที่ระบุไว้ตอนแจ้งคำขอ</li>
+              <li><span className="font-medium text-blue-800">รหัสติดตาม (Tracking Code)</span> ที่ได้รับหลังจากส่งคำขอสำเร็จ</li>
             </ul>
           </div>
         </div>
@@ -53,7 +55,16 @@ function CitizenTrackPageContent() {
 
 export default function CitizenTrackPage() {
   return (
-    <Suspense fallback={<AppShell variant="citizen"><div className="px-4 py-6 text-sm text-muted-foreground">Loading...</div></AppShell>}>
+    <Suspense 
+      fallback={
+        <AppShell variant="citizen">
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-gray-500">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+            <p className="text-sm font-medium">กำลังโหลดข้อมูล...</p>
+          </div>
+        </AppShell>
+      }
+    >
       <CitizenTrackPageContent />
     </Suspense>
   );

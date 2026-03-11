@@ -1,3 +1,4 @@
+// src\lib\hooks\use-sns-stream.ts
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SnsStreamEvent, SnsStreamStats, SnsStreamStatus } from '@/types/sns';

@@ -1,3 +1,4 @@
+// src/app/staff/requests/[requestId]/page.tsx
 'use client';
 
 import React from 'react';
@@ -17,6 +18,7 @@ import { formatDateTime } from '@/lib/utils/date';
 import { formatUpdateType } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 import { CitizenUpdateItem } from '@/types/rescue';
+import { RefreshCw } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ requestId: string }>;
@@ -25,37 +27,27 @@ interface PageProps {
 function DetailSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-10 w-72 animate-pulse rounded-lg bg-gray-200" />
+      <div className="h-10 w-64 animate-pulse rounded-xl bg-gray-200" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="space-y-3">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="space-y-4">
             {Array.from({ length: 9 }).map((_, idx) => (
-              <div key={`left-${idx}`} className="h-4 w-full animate-pulse rounded bg-gray-200" />
+              <div key={`left-${idx}`} className="h-4 w-full animate-pulse rounded-md bg-gray-100" />
             ))}
           </div>
         </div>
-        <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
             {Array.from({ length: 6 }).map((_, idx) => (
-              <div key={`right-${idx}`} className="mb-3 h-4 w-full animate-pulse rounded bg-gray-200" />
+              <div key={`right-${idx}`} className="mb-4 h-4 w-full animate-pulse rounded-md bg-gray-100" />
             ))}
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            {Array.from({ length: 4 }).map((_, idx) => (
-              <div key={`action-${idx}`} className="mb-3 h-9 w-full animate-pulse rounded bg-gray-200" />
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm flex gap-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={`action-${idx}`} className="h-10 w-full animate-pulse rounded-xl bg-gray-200" />
             ))}
           </div>
         </div>
-      </div>
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        {Array.from({ length: 5 }).map((_, idx) => (
-          <div key={`timeline-${idx}`} className="mb-3 h-4 w-full animate-pulse rounded bg-gray-200" />
-        ))}
-      </div>
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        {Array.from({ length: 4 }).map((_, idx) => (
-          <div key={`update-${idx}`} className="mb-3 h-4 w-full animate-pulse rounded bg-gray-200" />
-        ))}
       </div>
     </div>
   );
@@ -82,7 +74,7 @@ function SpecialNeedsChips({ value }: { value: unknown }) {
         : [];
 
   if (chips.length === 0) {
-    return <span className="text-sm text-gray-500">-</span>;
+    return <span className="text-sm text-gray-400">-</span>;
   }
 
   return (
@@ -90,7 +82,7 @@ function SpecialNeedsChips({ value }: { value: unknown }) {
       {chips.map((chip) => (
         <span
           key={chip}
-          className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
+          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
         >
           {chip}
         </span>
@@ -104,15 +96,15 @@ function UpdatePayloadContent({ item }: { item: CitizenUpdateItem }) {
 
   switch (item.updateType) {
     case 'NOTE':
-      return <p className="text-sm text-gray-700">{formatPayloadValue(payload.note)}</p>;
+      return <p className="text-sm text-gray-700 leading-relaxed">{formatPayloadValue(payload.note)}</p>;
 
     case 'LOCATION_DETAILS':
-      return <p className="text-sm text-gray-700">{formatPayloadValue(payload.locationDetails)}</p>;
+      return <p className="text-sm text-gray-700 leading-relaxed">{formatPayloadValue(payload.locationDetails)}</p>;
 
     case 'PEOPLE_COUNT':
       return (
         <p className="text-sm text-gray-700">
-          จำนวนผู้ประสบภัยล่าสุด: <span className="font-semibold">{formatPayloadValue(payload.peopleCount)}</span> คน
+          จำนวนผู้ประสบภัยล่าสุด: <span className="font-bold text-gray-900">{formatPayloadValue(payload.peopleCount)}</span> คน
         </p>
       );
 
@@ -124,14 +116,14 @@ function UpdatePayloadContent({ item }: { item: CitizenUpdateItem }) {
       const hasPhone = !!payload.contactPhone;
 
       return (
-        <div className="space-y-1 text-sm text-gray-700">
+        <div className="space-y-1.5 text-sm text-gray-700">
           <p>
-            ชื่อผู้ติดต่อ:{' '}
-            <span className="font-medium">{hasName ? formatPayloadValue(payload.contactName) : '-'}</span>
+            <span className="text-gray-500">ชื่อผู้ติดต่อ:</span>{' '}
+            <span className="font-semibold text-gray-900">{hasName ? formatPayloadValue(payload.contactName) : '-'}</span>
           </p>
           <p>
-            เบอร์โทรศัพท์:{' '}
-            <span className="font-medium">{hasPhone ? formatPayloadValue(payload.contactPhone) : '-'}</span>
+            <span className="text-gray-500">เบอร์โทรศัพท์:</span>{' '}
+            <span className="font-semibold text-gray-900">{hasPhone ? formatPayloadValue(payload.contactPhone) : '-'}</span>
           </p>
         </div>
       );
@@ -139,11 +131,11 @@ function UpdatePayloadContent({ item }: { item: CitizenUpdateItem }) {
 
     default:
       return (
-        <div className="space-y-1 text-sm text-gray-700">
+        <div className="space-y-1.5 text-sm text-gray-700">
           {Object.entries(payload).map(([key, value]) => (
             <p key={key}>
               <span className="text-gray-500">{key}: </span>
-              <span>{formatPayloadValue(value)}</span>
+              <span className="font-medium text-gray-900">{formatPayloadValue(value)}</span>
             </p>
           ))}
         </div>
@@ -209,34 +201,37 @@ export default function RequestDetailPage({ params }: PageProps) {
 
   return (
     <AppShell variant="staff">
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-350 mx-auto">
         <PageHeader
           title="รายละเอียดคำขอ"
           breadcrumbs={[
-            { label: 'แผงควบคุม', href: '/staff' },
-            { label: 'คำขอ', href: '/staff' },
+            { label: 'แดชบอร์ด', href: '/staff' },
+            { label: 'รายการคำขอ' },
             { label: `${requestId.slice(0, 8)}...` },
           ]}
           actions={
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              รีเฟรช
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="bg-white rounded-xl shadow-sm">
+              <RefreshCw size={14} className="mr-1.5" /> รีเฟรชข้อมูล
             </Button>
           }
         />
 
         {isLoading && <DetailSkeleton />}
-        {error && <ErrorAlert message="ไม่สามารถโหลดข้อมูลคำขอได้" />}
+        {error && <ErrorAlert message="ไม่สามารถโหลดข้อมูลคำขอได้ กรุณาลองใหม่อีกครั้ง" />}
         {isSyncingAfterAction && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            กำลังรอข้อมูลสถานะล่าสุดจากระบบ...
+          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-5 py-3.5 text-sm font-medium text-blue-800 shadow-sm animate-pulse">
+            <RefreshCw size={16} className="animate-spin" /> กำลังซิงค์ข้อมูลสถานะล่าสุดจากระบบ...
           </div>
         )}
 
         {data && !isLoading && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+              {/* ข้อมูลคงที่ (Master) */}
               <RequestMasterCard master={data.master} />
-              <div className="space-y-4">
+              
+              {/* ข้อมูลที่มีการเปลี่ยนแปลง (State & Actions) */}
+              <div className="space-y-6 sticky top-20">
                 <CurrentStateCard state={data.currentState} />
                 <StateActionPanel
                   requestId={requestId}
@@ -247,34 +242,40 @@ export default function RequestDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            <EventsList key={`${requestId}-${eventsRefreshToken}`} requestId={requestId} />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+              {/* Timeline (Events) */}
+              <EventsList key={`${requestId}-${eventsRefreshToken}`} requestId={requestId} />
 
-            <Card>
-              <CardHeader title="การอัปเดตจากผู้แจ้ง" />
-              <CardContent>
-                {updateItems.length === 0 ? (
-                  <p className="text-sm text-gray-500">ยังไม่มีข้อมูลอัปเดตจากผู้แจ้ง</p>
-                ) : (
-                  <div className="space-y-3">
-                    {updateItems.map((item) => (
-                      <div key={item.updateId} className="space-y-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="blue" size="sm">
-                            {formatUpdateType(item.updateType)}
-                          </Badge>
-                          <span className="text-xs text-gray-500">{item.updateId}</span>
-                          <span className="ml-auto text-xs text-gray-500">{formatDateTime(item.createdAt)}</span>
-                        </div>
+              {/* Citizen Updates */}
+              <Card className="border-gray-200">
+                <CardHeader title="การอัปเดตจากผู้แจ้งเหตุ" />
+                <CardContent>
+                  {updateItems.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-8 text-center">
+                      <p className="text-sm text-gray-500">ยังไม่มีข้อมูลอัปเดตเพิ่มเติมจากผู้แจ้ง</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {updateItems.map((item) => (
+                        <div key={item.updateId} className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/30 p-5 transition-colors hover:bg-blue-50/60">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="blue" size="sm">
+                              {formatUpdateType(item.updateType)}
+                            </Badge>
+                            <span className="text-xs font-medium text-gray-400">ID: {item.updateId.slice(0, 8)}</span>
+                            <span className="ml-auto text-xs font-semibold text-gray-500">{formatDateTime(item.createdAt)}</span>
+                          </div>
 
-                        <div className="rounded-md border border-gray-200 bg-white p-3">
-                          <UpdatePayloadContent item={item} />
+                          <div className="rounded-xl border border-white bg-white p-4 shadow-sm">
+                            <UpdatePayloadContent item={item} />
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </div>

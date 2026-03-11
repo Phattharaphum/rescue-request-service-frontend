@@ -1,77 +1,82 @@
 # rescue-request-service-frontend
 
-ระบบเดโม่ Next.js สำหรับ Rescue Request Service - ระบบจัดการคำขอช่วยเหลือผู้ประสบภัย
+Frontend เดโม่ด้วย Next.js สำหรับระบบจัดการคำขอช่วยเหลือผู้ประสบภัย
 
 ## เทคโนโลยีที่ใช้
 
-- **Next.js 16** (App Router)
-- **TypeScript**
-- **Tailwind CSS v4**
-- **lucide-react** - ไอคอน
-- **React Hook Form + Zod** - ฟอร์มและ validation
-- **TanStack Query** - data fetching
-- **Google Sans** - ฟอนต์หลัก
+- Next.js 16 (App Router)
+- TypeScript
+- Tailwind CSS v4
+- TanStack Query
+- React Hook Form + Zod
+- lucide-react
 
-## การติดตั้ง
+## เริ่มต้นใช้งาน
+
+### 1) ติดตั้ง dependencies
 
 ```bash
 npm install
 ```
 
-## การตั้งค่า Environment
+### 2) ตั้งค่า Environment (`.env.local`)
+
+โปรเจกต์นี้ไม่มี `.env.example` ใน repository ปัจจุบัน ให้สร้าง/แก้ไข `.env.local` ด้วยตัวแปรสำคัญดังนี้:
 
 ```bash
-cp .env.example .env.local
-# แก้ไข NEXT_PUBLIC_API_BASE_URL ตามความต้องการ
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/v1/
+NEXT_PUBLIC_SNS_TOPIC_ARN=arn:aws:sns:ap-southeast-1:000000000000:rescue-request-events-v1
+NEXT_PUBLIC_SNS_STREAM_MODE=sse
+NEXT_PUBLIC_SNS_SSE_URL=/api/pubsub/stream
 ```
 
-## การรัน
+ถ้าต้องการให้หน้า `/pubsub` ดึงข้อมูลจาก SQS ผ่าน API route (`/api/pubsub/stream`) ให้เพิ่มตัวแปรฝั่งเซิร์ฟเวอร์:
 
 ```bash
-# Development
+AWS_REGION=ap-southeast-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+SNS_STREAM_SQS_QUEUE_URL=...
+```
+
+### 3) รันโปรเจกต์
+
+```bash
 npm run dev
-
-# Production build
-npm run build
-npm start
 ```
 
-## โครงสร้างโปรเจค
+เปิดที่ `http://localhost:3000`
 
-```
-src/
-  app/           # Next.js App Router pages
-  components/    # React components
-    ui/          # UI primitives
-    shared/      # Shared components
-    layout/      # Layout components
-    citizen/     # ภาคประชาชน components
-    staff/       # ภาคเจ้าหน้าที่ components
-  lib/           # Utilities and API
-    api/         # API client and endpoints
-    config/      # Configuration
-    hooks/       # Custom React hooks
-    schemas/     # Zod validation schemas
-    utils/       # Utility functions
-  types/         # TypeScript types
-```
+## หน้าที่เข้าถึงได้ตอนนี้
 
-## ฟีเจอร์หลัก
+### หน้าเริ่มต้น
+- หน้าหลัก: `/`
 
 ### ภาคประชาชน
-- แจ้งคำขอช่วยเหลือ (`/citizen/request`)
-- ตรวจสอบสถานะด้วยเบอร์โทร + tracking code (`/citizen/track`)
-- ดูสถานะคำขอ (`/citizen/status/[requestId]`)
-- ส่งข้อมูลอัปเดตเพิ่มเติม (`/citizen/status/[requestId]/updates`)
+- แจ้งคำขอช่วยเหลือ: `/citizen/request`
+- หน้าสำเร็จหลังส่งคำขอ: `/citizen/success`
+- ค้นหาคำขอด้วยเบอร์โทร + tracking code: `/citizen/track`
+- ดูสถานะคำขอ: `/citizen/status/[requestId]`
+- ส่งข้อมูลอัปเดตเพิ่มเติม: `/citizen/status/[requestId]/updates`
 
 ### ภาคเจ้าหน้าที่
-- แผงควบคุมภาพรวม (`/staff`)
-- รายการคำขอตาม incident (`/staff/incidents`)
-- รายละเอียดคำขอ (`/staff/requests/[requestId]`)
-- แก้ไขข้อมูล (`/staff/requests/[requestId]/edit`)
-- ประวัติสถานะ (`/staff/requests/[requestId]/events`)
-- สถานะปัจจุบัน (`/staff/requests/[requestId]/current`)
-- ข้อมูล Idempotency (`/staff/requests/[requestId]/idempotency`)
+- แดชบอร์ดจัดการคำขอ: `/staff`
+- รายละเอียดคำขอ: `/staff/requests/[requestId]`
 
-### Pub/Sub Events
-- แสดง event stream จาก SNS (`/pubsub`)
+### Pub/Sub
+- สตรีมเหตุการณ์: `/pubsub`
+
+## หมายเหตุสำคัญ
+
+- สคริปต์ `npm run start` ใน `package.json` ปัจจุบันอ้างอิง `server.js` แต่ยังไม่มีไฟล์นี้ใน repository
+- ถ้าต้องการรัน production ควรปรับสคริปต์ `start` ให้ใช้ `next start` ก่อน
+
+## โครงสร้างโปรเจกต์หลัก
+
+```text
+src/
+  app/           # Next.js App Router pages และ API routes
+  components/    # UI และ feature components
+  lib/           # API client, config, hooks, schemas, utils
+  types/         # TypeScript types
+```

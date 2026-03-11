@@ -1,3 +1,4 @@
+// src\app\citizen\status\[requestId]\updates\page.tsx
 'use client';
 
 import React, { Suspense, useState } from 'react';

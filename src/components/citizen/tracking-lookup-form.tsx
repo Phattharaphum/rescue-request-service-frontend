@@ -1,3 +1,4 @@
+// src/components/citizen/tracking-lookup-form.tsx
 'use client';
 
 import { useState } from 'react';
@@ -34,47 +35,60 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       if (e?.status === 403 || e?.status === 404) {
-        setApiError('รหัสติดตามหรือเบอร์โทรไม่ถูกต้อง');
+        setApiError('ไม่พบข้อมูลคำขอ กรุณาตรวจสอบรหัสติดตามและเบอร์โทรศัพท์อีกครั้ง');
       } else {
-        setApiError(e?.message ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+        setApiError(e?.message ?? 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง');
       }
     }
   };
 
   return (
-    <Card>
-      <CardHeader title="ติดตามสถานะคำขอ" />
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+    <Card className="border-gray-200">
+      <CardHeader title="ค้นหาข้อมูลของคุณ" className="bg-white pb-2" />
+      <CardContent className="pt-2">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
           {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
 
           <Input
-            label="เบอร์โทรศัพท์ที่ใช้แจ้ง"
+            label="เบอร์โทรศัพท์ที่ใช้แจ้งคำขอ"
             required
             type="tel"
-            placeholder="0812345678"
-            {...register('contactPhone')}
+            placeholder="เช่น 0812345678"
+            inputMode="numeric"
+            maxLength={10}
+            {...register('contactPhone', {
+              onChange: (event) => {
+                const digits = String(event.target.value ?? '')
+                  .replace(/\D/g, '')
+                  .slice(0, 10);
+                event.target.value = digits;
+              },
+            })}
             error={errors.contactPhone?.message}
           />
 
           <Input
-            label="รหัสติดตาม"
+            label="รหัสติดตาม (Tracking Code)"
             required
-            placeholder="กรอกรหัสติดตามที่ได้รับ"
+            placeholder="กรอกรหัสติดตามที่ได้รับ (เช่น ABC-123)"
+            className="font-mono uppercase"
             {...register('trackingCode')}
             error={errors.trackingCode?.message}
           />
 
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            loading={isSubmitting}
-            disabled={isSubmitting}
-            leftIcon={<Search size={16} />}
-          >
-            {isSubmitting ? 'กำลังค้นหา...' : 'ค้นหาสถานะ'}
-          </Button>
+          <div className="pt-4">
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full text-base rounded-xl shadow-sm"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              leftIcon={<Search size={18} />}
+            >
+              {isSubmitting ? 'กำลังค้นหา...' : 'ค้นหาสถานะ'}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+// src/components/shared/error-alert.tsx
 'use client';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,23 +20,27 @@ export function ErrorAlert({
   return (
     <div
       className={cn(
-        'flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-4',
+        'flex items-start gap-3.5 rounded-2xl border border-red-100 bg-red-50 p-4 shadow-sm',
         className,
       )}
       role="alert"
     >
-      <AlertCircle className="shrink-0 mt-0.5 text-red-500" size={18} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-red-800">{title}</p>
-        <p className="mt-0.5 text-sm text-red-700">{message}</p>
+      <div className="rounded-full bg-red-100 p-1.5 shrink-0 mt-0.5">
+        <AlertCircle className="text-red-600" size={18} />
       </div>
+      
+      <div className="flex-1 min-w-0 space-y-1 mt-0.5">
+        <p className="text-sm font-bold text-red-900">{title}</p>
+        <p className="text-sm text-red-700 leading-relaxed">{message}</p>
+      </div>
+      
       {onRetry && (
         <Button
           variant="outline"
           size="sm"
           onClick={onRetry}
           leftIcon={<RefreshCw size={14} />}
-          className="shrink-0 border-red-300 text-red-700 hover:bg-red-100"
+          className="shrink-0 border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-800 rounded-xl"
         >
           ลองใหม่
         </Button>

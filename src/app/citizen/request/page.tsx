@@ -1,3 +1,4 @@
+// src/app/citizen/request/page.tsx
 'use client';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
@@ -24,12 +25,18 @@ export default function CitizenRequestPage() {
 
   return (
     <AppShell variant="citizen">
-      <div className="space-y-6">
+      <div className="mx-auto max-w-3xl space-y-8 py-6">
         <PageHeader
-          title="แจ้งคำขอช่วยเหลือ"
-          breadcrumbs={[{ label: 'หน้าหลัก', href: '/' }, { label: 'แจ้งคำขอช่วยเหลือ' }]}
+          title="แจ้งขอความช่วยเหลือฉุกเฉิน"
+          breadcrumbs={[
+            { label: 'หน้าหลัก', href: '/' },
+            { label: 'แจ้งขอความช่วยเหลือ' }
+          ]}
         />
-        <RescueRequestForm onSuccess={handleSuccess} />
+        
+        <div className="rounded-3xl bg-white p-6 shadow-sm border border-gray-100 sm:p-8">
+          <RescueRequestForm onSuccess={handleSuccess} />
+        </div>
       </div>
     </AppShell>
   );

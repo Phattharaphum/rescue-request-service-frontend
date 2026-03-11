@@ -1,3 +1,4 @@
+// src\components\citizen\location-summary.tsx
 'use client';
 
 import { MapPin, Navigation, Map } from 'lucide-react';

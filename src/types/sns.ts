@@ -1,3 +1,4 @@
+// src\types\sns.ts
 export interface SnsEventMetadata {
   eventType: string;
   eventId: string;
