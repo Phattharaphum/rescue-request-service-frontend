@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LocateFixed, Sparkles } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { SpecialNeedsInput } from '@/components/citizen/special-needs-input';
 import { rescueRequestSchema, RescueRequestFormValues } from '@/lib/schemas/citizen';
+import { ApiRequestError } from '@/lib/api/client';
 import { createRescueRequest } from '@/lib/api/rescue';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 import { INCIDENTS } from '@/lib/config/incidents';
@@ -24,6 +25,21 @@ const REQUEST_TYPE_OPTIONS = [
 ];
 
 const INCIDENT_OPTIONS = INCIDENTS.map((i) => ({ value: i.value, label: i.label }));
+const MAX_CREATE_RETRIES = 3;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransactionConflict(err: unknown): boolean {
+  if (err instanceof ApiRequestError) {
+    const msg = `${err.error?.message ?? ''} ${err.error?.code ?? ''}`.toLowerCase();
+    return err.status === 409 || msg.includes('transaction conflict') || msg.includes('transactionconflict');
+  }
+
+  const fallbackMessage = String((err as { message?: string })?.message ?? '').toLowerCase();
+  return fallbackMessage.includes('transaction conflict') || fallbackMessage.includes('transactionconflict');
+}
 
 interface RescueRequestFormProps {
   onSuccess: (data: {
@@ -37,6 +53,7 @@ interface RescueRequestFormProps {
 export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isMockingLocation, setIsMockingLocation] = useState(false);
+  const submitLockRef = useRef(false);
 
   const {
     register,
@@ -65,10 +82,34 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
   };
 
   const onSubmit = async (data: RescueRequestFormValues) => {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setApiError(null);
+
     try {
       const key = generateIdempotencyKey();
-      const result = await createRescueRequest(data, key);
+      let result;
+      let lastError: unknown;
+
+      for (let attempt = 1; attempt <= MAX_CREATE_RETRIES; attempt += 1) {
+        try {
+          result = await createRescueRequest(data, key);
+          break;
+        } catch (err: unknown) {
+          lastError = err;
+
+          if (!isTransactionConflict(err) || attempt === MAX_CREATE_RETRIES) {
+            throw err;
+          }
+
+          await wait(attempt * 300);
+        }
+      }
+
+      if (!result) {
+        throw lastError ?? new Error('Failed to create rescue request');
+      }
+
       onSuccess({
         requestId: result.requestId,
         trackingCode: result.trackingCode,
@@ -76,8 +117,14 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
         submittedAt: result.submittedAt,
       });
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setApiError(e?.message ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      if (isTransactionConflict(err)) {
+        setApiError('System is busy processing requests. Please submit again in 2-3 seconds.');
+      } else {
+        const e = err as { message?: string };
+        setApiError(e?.message ?? 'Request failed. Please try again.');
+      }
+    } finally {
+      submitLockRef.current = false;
     }
   };
 

@@ -51,7 +51,7 @@ export function Dialog({
     };
   }, [isOpen, handleKeyDown]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof window === 'undefined') return null;
 
   const content = (
     <div

@@ -44,9 +44,14 @@ async function request<T>(
   const url = `${API_BASE_URL}${normalizedPath}${buildQueryString(options?.params)}`;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...options?.headers,
   };
+  if (
+    body !== undefined &&
+    !Object.keys(headers).some((key) => key.toLowerCase() === 'content-type')
+  ) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const res = await fetch(url, {
     method,

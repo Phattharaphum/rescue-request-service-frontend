@@ -1,4 +1,9 @@
-import { spawn } from 'node:child_process';
+import {
+  DeleteMessageCommand,
+  ReceiveMessageCommand,
+  SQSClient,
+  type Message,
+} from '@aws-sdk/client-sqs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,7 +23,7 @@ interface SnsEnvelope {
 
 const encoder = new TextEncoder();
 
-const AWS_ENDPOINT_URL = process.env.AWS_ENDPOINT_URL ?? 'http://localhost:4566';
+const AWS_ENDPOINT_URL = process.env.AWS_ENDPOINT_URL;
 const AWS_REGION = process.env.AWS_REGION ?? 'ap-southeast-1';
 const SQS_QUEUE_URL = process.env.SNS_STREAM_SQS_QUEUE_URL;
 const POLL_WAIT_SECONDS = Number(process.env.SNS_STREAM_WAIT_SECONDS ?? '20');
@@ -107,75 +112,42 @@ function parseEnvelopeFromSqsBody(body: string): SnsEnvelope | null {
   };
 }
 
-function runAwsCli(args: string[]): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = spawn('aws', args, {
-      env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+let sqsClient: SQSClient | null = null;
 
-    let stdout = '';
-    let stderr = '';
+function getSqsClient(): SQSClient {
+  if (sqsClient) return sqsClient;
 
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdout.trim());
-        return;
-      }
-      reject(new Error(stderr.trim() || `aws exited with code ${code}`));
-    });
+  sqsClient = new SQSClient({
+    region: AWS_REGION,
+    ...(AWS_ENDPOINT_URL ? { endpoint: AWS_ENDPOINT_URL } : {}),
   });
+
+  return sqsClient;
 }
 
-async function receiveMessages(): Promise<Array<{ Body?: string; ReceiptHandle?: string }>> {
+async function receiveMessages(): Promise<Array<Pick<Message, 'Body' | 'ReceiptHandle'>>> {
   if (!SQS_QUEUE_URL) return [];
-
-  const output = await runAwsCli([
-    'sqs',
-    'receive-message',
-    '--endpoint-url',
-    AWS_ENDPOINT_URL,
-    '--region',
-    AWS_REGION,
-    '--queue-url',
-    SQS_QUEUE_URL,
-    '--max-number-of-messages',
-    '10',
-    '--wait-time-seconds',
-    String(POLL_WAIT_SECONDS),
-    '--visibility-timeout',
-    '30',
-    '--output',
-    'json',
-  ]);
-
-  if (!output) return [];
-  const parsed = tryParseJson(output);
-  if (!isObject(parsed) || !Array.isArray(parsed.Messages)) return [];
-  return parsed.Messages as Array<{ Body?: string; ReceiptHandle?: string }>;
+  const client = getSqsClient();
+  const response = await client.send(
+    new ReceiveMessageCommand({
+      QueueUrl: SQS_QUEUE_URL,
+      MaxNumberOfMessages: 10,
+      WaitTimeSeconds: POLL_WAIT_SECONDS,
+      VisibilityTimeout: 30,
+    }),
+  );
+  return response.Messages ?? [];
 }
 
 async function deleteMessage(receiptHandle: string): Promise<void> {
   if (!SQS_QUEUE_URL) return;
-  await runAwsCli([
-    'sqs',
-    'delete-message',
-    '--endpoint-url',
-    AWS_ENDPOINT_URL,
-    '--region',
-    AWS_REGION,
-    '--queue-url',
-    SQS_QUEUE_URL,
-    '--receipt-handle',
-    receiptHandle,
-  ]);
+  const client = getSqsClient();
+  await client.send(
+    new DeleteMessageCommand({
+      QueueUrl: SQS_QUEUE_URL,
+      ReceiptHandle: receiptHandle,
+    }),
+  );
 }
 
 function writeSseData(payload: unknown): Uint8Array {
@@ -184,6 +156,20 @@ function writeSseData(payload: unknown): Uint8Array {
 
 function writeSseComment(message: string): Uint8Array {
   return encoder.encode(`: ${message}\n\n`);
+}
+
+function writeSseError(reason: string): Uint8Array {
+  return writeSseData({
+    metadata: {
+      eventType: 'stream-error',
+      eventId: `stream-error-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      partitionKey: '-',
+      schemaVersion: '1.0',
+      source: 'sse-stream',
+    },
+    body: { reason },
+  });
 }
 
 export async function GET(): Promise<Response> {
@@ -240,6 +226,7 @@ export async function GET(): Promise<Response> {
             if (closed) return;
             const reason =
               error instanceof Error ? error.message : 'unknown stream error';
+            if (!safeEnqueue(writeSseError(reason))) return;
             if (!safeEnqueue(writeSseComment(`error: ${reason}`))) return;
             await sleep(1500);
           }

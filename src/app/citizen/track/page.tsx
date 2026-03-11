@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Info } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { PageHeader } from '@/components/layout/page-header';
 import { TrackingLookupForm } from '@/components/citizen/tracking-lookup-form';
 
-export default function CitizenTrackPage() {
+function CitizenTrackPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -48,5 +48,13 @@ export default function CitizenTrackPage() {
         <TrackingLookupForm onSuccess={handleFound} />
       </div>
     </AppShell>
+  );
+}
+
+export default function CitizenTrackPage() {
+  return (
+    <Suspense fallback={<AppShell variant="citizen"><div className="px-4 py-6 text-sm text-muted-foreground">Loading...</div></AppShell>}>
+      <CitizenTrackPageContent />
+    </Suspense>
   );
 }

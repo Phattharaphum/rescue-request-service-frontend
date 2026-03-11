@@ -66,6 +66,14 @@ function toStringValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
+function ensureRecordBody(value: unknown): Record<string, unknown> {
+  const record = asRecord(value);
+  if (record) return record;
+  if (Array.isArray(value)) return { items: value };
+  if (value === undefined) return {};
+  return { value };
+}
+
 function inferEventTypeFromBody(body: unknown): string {
   const payload = asRecord(body);
   if (!payload) return 'raw-message';
@@ -172,7 +180,7 @@ function normalizeIncomingEnvelope(raw: unknown): SnsEnvelope {
   if (!record) {
     return {
       metadata: buildMetadata({ eventType: 'raw-message' }, null, raw),
-      body: raw,
+      body: ensureRecordBody(raw),
     };
   }
 
@@ -200,7 +208,7 @@ function normalizeIncomingEnvelope(raw: unknown): SnsEnvelope {
         nestedHeader,
         nestedBody,
       ),
-      body: nestedBody,
+      body: ensureRecordBody(nestedBody),
     };
   }
 
@@ -209,14 +217,14 @@ function normalizeIncomingEnvelope(raw: unknown): SnsEnvelope {
     const body = parseJsonIfString(record.body);
     return {
       metadata: buildMetadata({}, header, body),
-      body,
+      body: ensureRecordBody(body),
     };
   }
 
   const fallbackBody = parseJsonIfString(record.body ?? record);
   return {
     metadata: buildMetadata({}, null, fallbackBody),
-    body: fallbackBody,
+    body: ensureRecordBody(fallbackBody),
   };
 }
 
@@ -247,6 +255,8 @@ export class MockEventSourceAdapter implements EventSourceAdapter {
 
 export class SSEEventSourceAdapter implements EventSourceAdapter {
   private eventSource?: EventSource;
+  private hasOpened = false;
+  private lastErrorAt = 0;
 
   constructor(private readonly url: string) {}
 
@@ -254,7 +264,12 @@ export class SSEEventSourceAdapter implements EventSourceAdapter {
     onEvent: (event: SnsStreamEvent) => void,
     onError?: (err: Error) => void,
   ): void {
+    this.hasOpened = false;
+    this.lastErrorAt = 0;
     this.eventSource = new EventSource(this.url);
+    this.eventSource.onopen = () => {
+      this.hasOpened = true;
+    };
     this.eventSource.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data as string) as unknown;
@@ -264,12 +279,31 @@ export class SSEEventSourceAdapter implements EventSourceAdapter {
         // Ignore malformed messages
       }
     };
-    this.eventSource.onerror = () =>
-      onError?.(new Error('SSE connection error'));
+    this.eventSource.onerror = () => {
+      if (!this.eventSource) return;
+
+      // Browsers emit onerror during automatic reconnect; skip noisy false alarms after first success.
+      if (this.hasOpened && this.eventSource.readyState === EventSource.CONNECTING) return;
+
+      const now = Date.now();
+      if (now - this.lastErrorAt < 5000) return;
+      this.lastErrorAt = now;
+
+      if (!this.hasOpened) {
+        onError?.(new Error(`SSE initial connection failed: ${this.url}`));
+        return;
+      }
+
+      if (this.eventSource.readyState === EventSource.CLOSED) {
+        onError?.(new Error('SSE connection closed'));
+      }
+    };
   }
 
   stop(): void {
     this.eventSource?.close();
+    this.eventSource = undefined;
+    this.hasOpened = false;
   }
 }
 

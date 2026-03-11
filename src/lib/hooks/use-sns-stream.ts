@@ -32,6 +32,7 @@ export function useSnsStream(options: UseSnsStreamOptions = {}): UseSnsStreamRet
 
   const handleEvent = useCallback(
     (event: SnsStreamEvent) => {
+      setStatus((prev) => (prev === 'paused' ? prev : 'connected'));
       setEvents((prev) => {
         const next = [event, ...prev];
         return next.slice(0, maxEvents);
@@ -49,7 +50,10 @@ export function useSnsStream(options: UseSnsStreamOptions = {}): UseSnsStreamRet
     stopAdapter();
     const adapter = createEventSourceAdapter(mode, sseUrl);
     adapterRef.current = adapter;
-    adapter.start(handleEvent, (err) => console.error('SNS stream error:', err));
+    adapter.start(handleEvent, (err) => {
+      setStatus((prev) => (prev === 'paused' ? prev : 'disconnected'));
+      console.warn('SNS stream issue:', err.message);
+    });
   }, [mode, sseUrl, handleEvent, stopAdapter]);
 
   useEffect(() => {
