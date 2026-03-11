@@ -1,42 +1,60 @@
+// src/components/layout/topbar.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Menu, X } from 'lucide-react';
+import { ShieldAlert, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 const TEXT = {
-  appName: '\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E04\u0E33\u0E02\u0E2D\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E2B\u0E25\u0E37\u0E2D',
-  request: '\u0E41\u0E08\u0E49\u0E07\u0E04\u0E33\u0E02\u0E2D\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E2B\u0E25\u0E37\u0E2D',
-  track: '\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E04\u0E33\u0E02\u0E2D',
-  list: '\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E04\u0E33\u0E02\u0E2D\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E2B\u0E25\u0E37\u0E2D',
+  appName: 'ระบบจัดการคำขอช่วยเหลือ',
 };
 
 const NAV_LINKS = [
-  { label: TEXT.request, href: '/citizen/request' },
-  { label: TEXT.track, href: '/citizen/track' },
-  { label: TEXT.list, href: '/staff' },
-  { label: 'Pub/Sub', href: '/pubsub' },
+  { label: 'แจ้งขอความช่วยเหลือ', href: '/citizen/request' },
+  { label: 'ติดตามสถานะ', href: '/citizen/track' },
+  { label: 'สำหรับเจ้าหน้าที่', href: '/staff' },
+  { label: 'เหตุการณ์ (Pub/Sub)', href: '/pubsub' },
 ];
 
 export function Topbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // เพิ่มเงาบางๆ เวลาเลื่อนหน้าจอ
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-blue-700 text-white shadow-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+    <header 
+      className={cn(
+        'sticky top-0 z-50 w-full transition-all duration-300',
+        scrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100' : 'bg-white border-b border-gray-100'
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        
+        {/* Logo */}
         <Link
           href="/"
-          aria-label={`${TEXT.appName} - Home`}
-          className="flex items-center gap-2 font-semibold text-white transition-opacity hover:opacity-90"
+          aria-label={`${TEXT.appName} - หน้าหลัก`}
+          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
         >
-          <Shield size={22} />
-          <span className="text-sm sm:text-base">{TEXT.appName}</span>
+          <div className="rounded-lg bg-blue-600 p-1.5 text-white">
+            <ShieldAlert size={20} />
+          </div>
+          <span className="text-base font-bold text-gray-900 sm:text-lg tracking-tight">
+            {TEXT.appName}
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 sm:flex">
+        {/* Desktop Navigation */}
+        <nav className="hidden items-center gap-2 sm:flex">
           {NAV_LINKS.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
@@ -44,8 +62,10 @@ export function Topbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
-                  active ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white',
+                  'rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200',
+                  active 
+                    ? 'bg-blue-50 text-blue-700' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                 )}
               >
                 {link.label}
@@ -54,17 +74,19 @@ export function Topbar() {
           })}
         </nav>
 
+        {/* Mobile Menu Toggle */}
         <button
-          className="rounded-lg p-1.5 text-blue-100 transition-colors hover:bg-white/10 hover:text-white sm:hidden"
+          className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:hidden"
           onClick={() => setMobileOpen((v) => !v)}
-          aria-label={mobileOpen ? 'Close Menu' : 'Open Menu'}
+          aria-label={mobileOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
         >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
+      {/* Mobile Navigation */}
       {mobileOpen && (
-        <nav className="flex flex-col gap-1 border-t border-blue-600 bg-blue-700 px-4 pb-3 pt-2 sm:hidden">
+        <nav className="flex flex-col gap-1 border-t border-gray-100 bg-white px-4 pb-4 pt-2 shadow-lg sm:hidden absolute w-full">
           {NAV_LINKS.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
@@ -73,8 +95,10 @@ export function Topbar() {
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  active ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white',
+                  'rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                  active 
+                    ? 'bg-blue-50 text-blue-700 font-semibold' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                 )}
               >
                 {link.label}

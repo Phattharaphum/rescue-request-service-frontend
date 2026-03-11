@@ -1,3 +1,4 @@
+// src\lib\config\special-needs.ts
 export const SPECIAL_NEEDS_CHIPS = [
   'ผู้สูงอายุ',
   'เด็กเล็ก',

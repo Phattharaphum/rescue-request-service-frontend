@@ -1,9 +1,10 @@
+// src/components/staff/state-action-panel.tsx
 'use client';
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { CheckCircle, XCircle, UserCheck, PlayCircle, ClipboardList } from 'lucide-react';
+import { CheckCircle2, XCircle, UserCheck, PlayCircle, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,15 +25,23 @@ import {
 import { PriorityLevel, RequestStatus } from '@/types/rescue';
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
-  triage: <ClipboardList size={16} />,
-  assign: <UserCheck size={16} />,
-  start: <PlayCircle size={16} />,
-  resolve: <CheckCircle size={16} />,
-  cancel: <XCircle size={16} />,
+  triage: <ClipboardList size={18} />,
+  assign: <UserCheck size={18} />,
+  start: <PlayCircle size={18} />,
+  resolve: <CheckCircle2 size={18} />,
+  cancel: <XCircle size={18} />,
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  triage: 'ประเมิน/คัดกรอง',
+  assign: 'มอบหมายทีมปฏิบัติการ',
+  start: 'เริ่มปฏิบัติการ',
+  resolve: 'ดำเนินการสำเร็จ/ปิดงาน',
+  cancel: 'ยกเลิกคำขอ',
 };
 
 const ACTION_VARIANT: Record<string, 'primary' | 'secondary' | 'danger' | 'outline'> = {
-  triage: 'secondary',
+  triage: 'outline',
   assign: 'primary',
   start: 'primary',
   resolve: 'primary',
@@ -40,10 +49,10 @@ const ACTION_VARIANT: Record<string, 'primary' | 'secondary' | 'danger' | 'outli
 };
 
 const PRIORITY_OPTIONS: Array<{ value: PriorityLevel; label: string }> = [
-  { value: 'LOW', label: 'LOW' },
-  { value: 'MEDIUM', label: 'MEDIUM' },
-  { value: 'HIGH', label: 'HIGH' },
-  { value: 'CRITICAL', label: 'CRITICAL' },
+  { value: 'LOW', label: 'ต่ำ (Low)' },
+  { value: 'MEDIUM', label: 'ปานกลาง (Medium)' },
+  { value: 'HIGH', label: 'สูง (High)' },
+  { value: 'CRITICAL', label: 'วิกฤต (Critical)' },
 ];
 
 interface StateActionPanelProps {
@@ -70,7 +79,7 @@ function parseMeta(raw?: string): Record<string, unknown> | undefined {
 
   const parsed = JSON.parse(text);
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-    throw new Error('meta must be a JSON object. Example: {"dispatchZone":"BKK-01"}');
+    throw new Error('ช่อง "ข้อมูลเพิ่มเติม (Meta)" ต้องเป็นรูปแบบ JSON Object ที่ถูกต้องเท่านั้น เช่น {"vehicleType":"BOAT"}');
   }
 
   return parsed as Record<string, unknown>;
@@ -78,8 +87,8 @@ function parseMeta(raw?: string): Record<string, unknown> | undefined {
 
 function resetValues() {
   return {
-    changedBy: 'staff',
-    changedByRole: 'staff',
+    changedBy: 'เจ้าหน้าที่ศูนย์', // Default in Thai
+    changedByRole: 'Dispatcher',
     responderUnitId: '',
     reason: '',
     priorityScore: '',
@@ -115,12 +124,12 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
       const priorityScore = data.priorityScore?.trim() ? Number(data.priorityScore) : undefined;
 
       if (priorityScore !== undefined && Number.isNaN(priorityScore)) {
-        throw new Error('priorityScore must be numeric');
+        throw new Error('คะแนนความเร่งด่วนต้องเป็นตัวเลขเท่านั้น');
       }
 
       const base = {
-        changedBy: data.changedBy.trim() || 'staff',
-        changedByRole: data.changedByRole.trim() || 'staff',
+        changedBy: data.changedBy.trim() || 'System',
+        changedByRole: data.changedByRole.trim() || 'Staff',
         priorityScore,
         priorityLevel: data.priorityLevel || undefined,
         note: data.note?.trim() || undefined,
@@ -133,10 +142,7 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
         case 'assign':
           return assignRequest(
             requestId,
-            {
-              ...base,
-              responderUnitId: data.responderUnitId?.trim() || '',
-            },
+            { ...base, responderUnitId: data.responderUnitId?.trim() || '' },
             key,
             ifMatch,
           );
@@ -147,36 +153,30 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
         case 'cancel':
           return cancelRequest(
             requestId,
-            {
-              reason: data.reason?.trim() || '',
-              changedBy: base.changedBy,
-              changedByRole: base.changedByRole,
-              meta: base.meta,
-            },
+            { reason: data.reason?.trim() || '', changedBy: base.changedBy, changedByRole: base.changedByRole, meta: base.meta },
             key,
             ifMatch,
           );
         default:
-          throw new Error('Unknown action');
+          throw new Error('ไม่พบประเภทการดำเนินการที่ระบุ');
       }
     },
     onSuccess: async (result) => {
-      toast.show('ดำเนินการสำเร็จ', 'success');
+      toast.show('อัปเดตสถานะสำเร็จ', 'success');
       queryClient.invalidateQueries({ queryKey: ['request-detail', requestId] });
       setActiveAction(null);
       reset(resetValues());
-      const expectedVersion =
-        (result as { version?: number } | undefined)?.version;
+      const expectedVersion = (result as { version?: number } | undefined)?.version;
       await onSuccess?.({ expectedVersion });
     },
     onError: (err: unknown) => {
       const e = err as { status?: number; message?: string };
       if (e?.status === 409) {
-        setApiError('ข้อมูลถูกอัปเดตโดยผู้อื่น กรุณารีเฟรชหน้าและลองใหม่');
+        setApiError('ข้อมูลถูกอัปเดตโดยเจ้าหน้าที่ท่านอื่นไปแล้ว กรุณารีเฟรชหน้าและลองใหม่อีกครั้ง');
       } else if (e?.status === 422) {
-        setApiError(e.message ?? 'ข้อมูลไม่ถูกต้องตามเงื่อนไข API');
+        setApiError(e.message ?? 'ข้อมูลที่กรอกไม่ถูกต้องตามเงื่อนไข');
       } else {
-        setApiError(e?.message ?? 'เกิดข้อผิดพลาด');
+        setApiError(e?.message ?? 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ');
       }
     },
   });
@@ -193,20 +193,16 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
 
   return (
     <>
-      <Card>
-        <CardHeader title="ดำเนินการ" />
+      <Card className="border-gray-200 bg-white shadow-sm">
+        <CardHeader title="อัปเดตสถานะการปฏิบัติงาน" />
         <CardContent>
-          {apiError && (
-            <div className="mb-4">
-              <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             {actions.map((action) => (
               <Button
                 key={action.action}
                 variant={ACTION_VARIANT[action.action] ?? 'outline'}
-                size="sm"
+                size="md"
+                className="flex-1 sm:flex-none justify-start sm:justify-center rounded-xl shadow-sm"
                 leftIcon={ACTION_ICONS[action.action]}
                 onClick={() => {
                   setApiError(null);
@@ -214,7 +210,7 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
                 }}
                 disabled={mutation.isPending}
               >
-                {action.label}
+                {ACTION_LABELS[action.action] ?? action.label}
               </Button>
             ))}
           </div>
@@ -224,93 +220,91 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
       <Dialog
         isOpen={!!activeAction}
         onClose={closeDialog}
-        title={`ยืนยัน: ${activeAction?.label ?? ''}`}
-        size="sm"
+        title={`ยืนยัน: ${activeAction ? (ACTION_LABELS[activeAction.action] ?? activeAction.label) : ''}`}
+        size="md"
       >
         <form
           onSubmit={handleSubmit((formData) => mutation.mutate(formData))}
           noValidate
-          className="space-y-4"
+          className="space-y-5"
         >
-          <p className="text-sm text-gray-500">
-            ยืนยันการดำเนินการ &ldquo;{activeAction?.label}&rdquo;
-          </p>
-
           {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
 
           {activeAction?.requiresField === 'responderUnitId' && (
             <Input
-              label="responderUnitId"
+              label="รหัสทีม/หน่วยปฏิบัติการที่รับผิดชอบ"
               required
-              placeholder="UNIT-001"
-              {...register('responderUnitId', { required: 'กรุณาระบุ responderUnitId' })}
+              placeholder="เช่น TEAM-A01"
+              {...register('responderUnitId', { required: 'กรุณาระบุรหัสหน่วยปฏิบัติการ' })}
               error={errors.responderUnitId?.message}
             />
           )}
 
           {activeAction?.requiresField === 'reason' && (
             <Input
-              label="reason"
+              label="เหตุผลที่ยกเลิก"
               required
-              placeholder="Cancellation reason"
-              {...register('reason', { required: 'กรุณาระบุ reason' })}
+              placeholder="เช่น เป็นการแจ้งเหตุซ้ำ, ผู้ประสบภัยปลอดภัยแล้ว..."
+              {...register('reason', { required: 'กรุณาระบุเหตุผลที่ยกเลิก' })}
               error={errors.reason?.message}
             />
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
             <Input
-              label="changedBy"
-              placeholder="staff-001"
+              label="รหัสเจ้าหน้าที่ทำรายการ (ID)"
+              placeholder="เช่น staff-101"
               {...register('changedBy')}
             />
             <Input
-              label="changedByRole"
-              placeholder="dispatcher"
+              label="บทบาท/ตำแหน่ง (Role)"
+              placeholder="เช่น Dispatcher, Field Unit"
               {...register('changedByRole')}
             />
           </div>
 
           {activeAction?.action !== 'cancel' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Select
+                  label="ปรับระดับความเร่งด่วน"
+                  options={PRIORITY_OPTIONS}
+                  placeholder="(เลือกเพื่อเปลี่ยนระดับ)"
+                  {...register('priorityLevel')}
+                />
                 <Input
-                  label="priorityScore"
+                  label="คะแนนประเมินความเสี่ยง"
                   type="number"
                   step="0.1"
-                  placeholder="85.5"
+                  placeholder="เช่น 85.5 (ไม่บังคับ)"
                   {...register('priorityScore')}
-                />
-                <Select
-                  label="priorityLevel"
-                  options={PRIORITY_OPTIONS}
-                  placeholder="(optional)"
-                  {...register('priorityLevel')}
                 />
               </div>
 
               <Textarea
-                label="note"
+                label="บันทึกการปฏิบัติงาน (Note)"
                 rows={3}
-                placeholder="Operational note"
+                placeholder="อธิบายรายละเอียดการปฏิบัติงาน การตัดสินใจ หรือสถานการณ์หน้างาน..."
                 {...register('note')}
               />
             </>
           )}
 
           <Textarea
-            label="meta (JSON object)"
-            rows={4}
+            label="ข้อมูลเพิ่มเติมทางเทคนิค (JSON Meta)"
+            rows={3}
             placeholder='{"vehicleType":"BOAT","dispatchZone":"BKK-01"}'
-            helperText="Optional. Must be a JSON object."
+            helperText="ไม่บังคับใช้ ต้องกรอกในรูปแบบ JSON Object ที่ถูกต้องเท่านั้น"
+            className="font-mono text-sm"
             {...register('meta')}
           />
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-4 border-t border-gray-100">
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              size="lg"
+              className="flex-1 rounded-xl bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
               onClick={closeDialog}
               disabled={mutation.isPending}
             >
@@ -319,10 +313,11 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
             <Button
               type="submit"
               variant={activeAction?.action === 'cancel' ? 'danger' : 'primary'}
-              className="flex-1"
+              size="lg"
+              className="flex-1 rounded-xl shadow-sm"
               loading={mutation.isPending}
             >
-              {activeAction?.label ?? 'ยืนยัน'}
+              {activeAction ? (ACTION_LABELS[activeAction.action] ?? 'ยืนยันการทำรายการ') : 'ยืนยัน'}
             </Button>
           </div>
         </form>

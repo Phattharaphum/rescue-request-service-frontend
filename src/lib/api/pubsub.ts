@@ -1,3 +1,4 @@
+// src\lib\api\pubsub.ts
 import { v4 as uuidv4 } from 'uuid';
 import { PublishedEventType, SnsEnvelope, SnsEventMetadata, SnsStreamEvent } from '@/types/sns';
 

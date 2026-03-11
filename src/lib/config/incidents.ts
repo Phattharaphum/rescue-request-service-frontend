@@ -1,3 +1,4 @@
+// src\lib\config\incidents.ts
 export interface Incident {
   label: string;
   value: string;

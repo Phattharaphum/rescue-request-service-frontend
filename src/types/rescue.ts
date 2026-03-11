@@ -1,3 +1,4 @@
+// src\types\rescue.ts
 import { PaginatedResponse } from '@/types/api';
 
 export type RequestStatus =

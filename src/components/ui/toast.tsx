@@ -1,6 +1,7 @@
+// src/components/ui/toast.tsx
 'use client';
 
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 import React, {
   createContext,
   useCallback,
@@ -27,33 +28,37 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
+  if (!ctx) throw new Error('useToast ต้องถูกเรียกใช้ภายใน <ToastProvider> เท่านั้น');
   return ctx;
 }
 
 const toastConfig: Record<
   ToastType,
-  { icon: React.ReactNode; containerClass: string; iconClass: string }
+  { icon: React.ReactNode; containerClass: string; iconClass: string; title: string }
 > = {
   success: {
-    icon: <CheckCircle size={18} />,
-    containerClass: 'bg-white border-green-400',
+    icon: <CheckCircle2 size={20} />,
+    containerClass: 'bg-white border-green-500',
     iconClass: 'text-green-500',
+    title: 'สำเร็จ',
   },
   error: {
-    icon: <XCircle size={18} />,
-    containerClass: 'bg-white border-red-400',
+    icon: <XCircle size={20} />,
+    containerClass: 'bg-white border-red-500',
     iconClass: 'text-red-500',
+    title: 'เกิดข้อผิดพลาด',
   },
   warning: {
-    icon: <AlertTriangle size={18} />,
-    containerClass: 'bg-white border-amber-400',
+    icon: <AlertTriangle size={20} />,
+    containerClass: 'bg-white border-amber-500',
     iconClass: 'text-amber-500',
+    title: 'ข้อควรระวัง',
   },
   info: {
-    icon: <Info size={18} />,
-    containerClass: 'bg-white border-blue-400',
+    icon: <Info size={20} />,
+    containerClass: 'bg-white border-blue-500',
     iconClass: 'text-blue-500',
+    title: 'ข้อมูล',
   },
 };
 
@@ -71,9 +76,7 @@ function ToastItemComponent({
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Trigger enter animation
     const frame = requestAnimationFrame(() => setVisible(true));
-
     timerRef.current = setTimeout(() => {
       setVisible(false);
       setTimeout(() => onDismiss(toast.id), 300);
@@ -96,17 +99,20 @@ function ToastItemComponent({
       role="alert"
       aria-live="polite"
       className={cn(
-        'flex items-start gap-3 w-full max-w-sm px-4 py-3 rounded-xl shadow-lg border-l-4',
-        'transition-all duration-300',
+        'flex items-start gap-3 w-full max-w-sm px-4 py-4 rounded-2xl shadow-xl border-l-4',
+        'transition-all duration-300 transform',
         config.containerClass,
-        visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full',
+        visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95',
       )}
     >
       <span className={cn('shrink-0 mt-0.5', config.iconClass)}>{config.icon}</span>
-      <p className="flex-1 text-sm text-gray-800 leading-snug">{toast.message}</p>
+      <div className="flex-1 space-y-1">
+        <p className="text-sm font-bold text-gray-900">{config.title}</p>
+        <p className="text-sm text-gray-600 leading-snug">{toast.message}</p>
+      </div>
       <button
         onClick={handleDismiss}
-        className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+        className="shrink-0 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
         aria-label="ปิดการแจ้งเตือน"
       >
         <X size={16} />
@@ -130,10 +136,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      {/* Toast container */}
       <div
-        aria-label="การแจ้งเตือน"
-        className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 items-end pointer-events-none"
+        aria-label="การแจ้งเตือนของระบบ"
+        className="fixed bottom-4 right-4 z-100 flex flex-col gap-3 items-end pointer-events-none sm:bottom-6 sm:right-6"
       >
         {toasts.map((t) => (
           <div key={t.id} className="pointer-events-auto w-full max-w-sm">

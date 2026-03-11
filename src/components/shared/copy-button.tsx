@@ -1,5 +1,6 @@
+// src/components/shared/copy-button.tsx
 'use client';
-import { Copy, Check } from 'lucide-react';
+import { Copy, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { cn } from '@/lib/utils/cn';
@@ -14,13 +15,27 @@ export function CopyButton({ text, className }: CopyButtonProps) {
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="sm"
       onClick={() => copy(text)}
-      leftIcon={copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-      className={cn('text-gray-500 hover:text-gray-800', className)}
+      leftIcon={
+        copied ? (
+          <CheckCircle2 size={16} className="text-green-600" />
+        ) : (
+          <Copy size={16} className="text-blue-600" />
+        )
+      }
+      className={cn(
+        'rounded-lg font-medium transition-all duration-200',
+        copied 
+          ? 'bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800' 
+          : 'bg-blue-50/50 text-blue-700 hover:bg-blue-100 hover:text-blue-800',
+        className
+      )}
+      aria-label="คัดลอกรหัส"
     >
-      {copied ? 'คัดลอกแล้ว!' : 'คัดลอก'}
+      {copied ? 'คัดลอกสำเร็จ' : 'คัดลอกรหัส'}
     </Button>
   );
 }

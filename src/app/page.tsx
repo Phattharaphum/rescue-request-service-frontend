@@ -1,88 +1,98 @@
+// src/app/page.tsx
 import Link from 'next/link';
 import { AlertTriangle, Activity, ClipboardList, SearchCheck, Siren } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 
 const TEXT = {
-  title:
-    '\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E04\u0E33\u0E02\u0E2D\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1C\u0E39\u0E49\u0E1B\u0E23\u0E30\u0E2A\u0E1A\u0E20\u0E31\u0E22',
-  request: '\u0E41\u0E08\u0E49\u0E07\u0E04\u0E33\u0E02\u0E2D\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E2B\u0E25\u0E37\u0E2D',
-  track: '\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E04\u0E33\u0E02\u0E2D',
-  list: '\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E04\u0E33\u0E02\u0E2D\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E2B\u0E25\u0E37\u0E2D',
-  name: '\u0E20\u0E31\u0E17\u0E23\u0E20\u0E39\u0E21\u0E34 \u0E01\u0E34\u0E48\u0E07\u0E0A\u0E31\u0E22',
-  studentId: '\u0E23\u0E2B\u0E31\u0E2A\u0E19\u0E31\u0E01\u0E28\u0E36\u0E01\u0E29\u0E32 6609612160',
+  title: 'ระบบจัดการคำขอช่วยเหลือผู้ประสบภัย',
+  name: 'ภัทรภูมิ กิ่งชัย',
+  studentId: 'รหัสนักศึกษา 6609612160',
 };
 
 const HOME_ACTIONS = [
   {
-    label: TEXT.request,
-    description: 'Send emergency rescue request',
+    label: 'แจ้งขอความช่วยเหลือ',
+    description: 'ส่งแบบฟอร์มเพื่อขอรับการช่วยเหลือฉุกเฉิน',
     href: '/citizen/request',
     icon: AlertTriangle,
-    className: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+    className: 'border-red-100 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-200 hover:shadow-md',
+    iconBg: 'bg-red-100 text-red-600',
   },
   {
-    label: TEXT.track,
-    description: 'Track request progress',
+    label: 'ติดตามสถานะคำขอ',
+    description: 'ตรวจสอบความคืบหน้าการช่วยเหลือของคุณ',
     href: '/citizen/track',
     icon: SearchCheck,
-    className: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
+    className: 'border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-200 hover:shadow-md',
+    iconBg: 'bg-blue-100 text-blue-600',
   },
   {
-    label: TEXT.list,
-    description: 'Open staff request dashboard',
+    label: 'จัดการรายการคำขอ',
+    description: 'ระบบกระดานจัดการสำหรับเจ้าหน้าที่ (Staff)',
     href: '/staff',
     icon: ClipboardList,
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+    className: 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-200 hover:shadow-md',
+    iconBg: 'bg-emerald-100 text-emerald-600',
   },
   {
-    label: 'Pub/Sub',
-    description: 'View real-time stream events',
+    label: 'ติดตามเหตุการณ์ (Pub/Sub)',
+    description: 'ดูสตรีมข้อมูลและเหตุการณ์แบบเรียลไทม์',
     href: '/pubsub',
     icon: Activity,
-    className: 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100',
+    className: 'border-cyan-100 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-200 hover:shadow-md',
+    iconBg: 'bg-cyan-100 text-cyan-600',
   },
 ];
 
 export default function HomePage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-3xl space-y-8 py-8">
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-orange-100 p-2 text-orange-700">
-              <Siren size={22} />
+      <div className="mx-auto max-w-3xl space-y-8 py-10 px-4 sm:px-0">
+        
+        {/* Header Section */}
+        <section className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 shadow-inner">
+              <Siren size={32} />
             </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold text-gray-900">{TEXT.title}</h1>
-              <p className="text-sm text-gray-600">
-                {TEXT.name} {TEXT.studentId}
+            <div className="space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+                {TEXT.title}
+              </h1>
+              <p className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+                {TEXT.name} • {TEXT.studentId}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Actions Section */}
+        <section className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {HOME_ACTIONS.map((action) => {
             const Icon = action.icon;
             return (
               <Link
                 key={action.href}
                 href={action.href}
-                className={`rounded-2xl border p-5 transition-all ${action.className}`}
+                className={`group flex flex-col justify-between rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 ${action.className}`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-white/80 p-2">
-                    <Icon size={18} />
+                <div className="flex items-start gap-4">
+                  <div className={`rounded-xl p-3 transition-colors ${action.iconBg}`}>
+                    <Icon size={24} />
                   </div>
-                  <div className="space-y-1">
-                    <h2 className="text-base font-semibold">{action.label}</h2>
-                    <p className="text-sm opacity-90">{action.description}</p>
+                  <div className="space-y-1.5 mt-1">
+                    <h2 className="text-lg font-bold tracking-tight">{action.label}</h2>
+                    <p className="text-sm font-medium opacity-80 leading-relaxed">
+                      {action.description}
+                    </p>
                   </div>
                 </div>
               </Link>
             );
           })}
         </section>
+
       </div>
     </AppShell>
   );

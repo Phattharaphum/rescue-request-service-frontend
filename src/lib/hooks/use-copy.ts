@@ -1,3 +1,4 @@
+// src\lib\hooks\use-copy.ts
 'use client';
 import { useState, useCallback } from 'react';
 

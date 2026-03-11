@@ -1,3 +1,4 @@
+// src\lib\utils\pagination.ts
 export function buildCursorParams(cursor?: string, limit?: number): URLSearchParams {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);

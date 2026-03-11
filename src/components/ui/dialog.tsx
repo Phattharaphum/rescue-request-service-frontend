@@ -1,7 +1,8 @@
+// src/components/ui/dialog.tsx
 'use client';
 
 import { X } from 'lucide-react';
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils/cn';
 
@@ -33,6 +34,13 @@ export function Dialog({
   children,
   className,
 }: DialogProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -51,11 +59,11 @@ export function Dialog({
     };
   }, [isOpen, handleKeyDown]);
 
-  if (!isOpen || typeof window === 'undefined') return null;
+  if (!isOpen || !mounted) return null;
 
   const content = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'dialog-title' : undefined}
@@ -63,7 +71,7 @@ export function Dialog({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -71,8 +79,9 @@ export function Dialog({
       {/* Panel */}
       <div
         className={cn(
-          'relative z-10 w-full bg-white rounded-2xl shadow-xl',
-          'flex flex-col max-h-[90vh]',
+          'relative z-10 w-full bg-white rounded-3xl shadow-2xl',
+          'flex flex-col max-h-[90vh] overflow-hidden',
+          'transform transition-all duration-300 scale-100 opacity-100',
           sizeClasses[size],
           className,
         )}
@@ -84,7 +93,7 @@ export function Dialog({
               {title && (
                 <h2
                   id="dialog-title"
-                  className="text-lg font-semibold text-gray-900"
+                  className="text-xl font-bold text-gray-900 tracking-tight"
                 >
                   {title}
                 </h2>
@@ -92,7 +101,7 @@ export function Dialog({
               {description && (
                 <p
                   id="dialog-description"
-                  className="mt-1 text-sm text-gray-500"
+                  className="mt-1.5 text-sm text-gray-500 leading-relaxed"
                 >
                   {description}
                 </p>
@@ -100,8 +109,8 @@ export function Dialog({
             </div>
             <button
               onClick={onClose}
-              className="shrink-0 rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="ปิด"
+              className="shrink-0 rounded-full p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              aria-label="ปิดหน้าต่าง"
             >
               <X size={20} />
             </button>
@@ -109,7 +118,7 @@ export function Dialog({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
       </div>
     </div>
   );

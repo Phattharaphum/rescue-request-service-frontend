@@ -1,22 +1,23 @@
+// src/app/citizen/success/page.tsx
 'use client';
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { CopyButton } from '@/components/shared/copy-button';
 
 const TRACKING_REMINDER =
-  'กรุณาจดจำหรือบันทึก รหัสติดตาม ไว้เพื่อใช้ในการติดตามความคืบหน้า และแจ้งอัพเดทเพิ่มเติม';
+  'โปรดบันทึกหรือคัดลอก "รหัสติดตาม" ด้านล่างนี้ไว้ เพื่อใช้สำหรับตรวจสอบความคืบหน้าและแจ้งข้อมูลเพิ่มเติมให้เจ้าหน้าที่ทราบ';
 
 function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestId = searchParams.get('requestId') ?? '';
   const trackingCode = searchParams.get('trackingCode') ?? '';
-  const status = searchParams.get('status') ?? '';
+  const status = searchParams.get('status') ?? 'รอการตรวจสอบ';
   const submittedAt = searchParams.get('submittedAt') ?? '';
 
   const [isReminderOpen, setIsReminderOpen] = useState(true);
@@ -33,7 +34,6 @@ function SuccessContent() {
       const params = new URLSearchParams({ requestId, trackingCode });
       return `/citizen/track?${params.toString()}`;
     }
-
     return '/citizen/track';
   }, [requestId, trackingCode]);
 
@@ -42,7 +42,6 @@ function SuccessContent() {
       const params = new URLSearchParams({ trackingCode });
       return `/citizen/status/${requestId}/updates?${params.toString()}`;
     }
-
     return '/citizen/track';
   }, [requestId, trackingCode]);
 
@@ -59,83 +58,115 @@ function SuccessContent() {
 
   return (
     <AppShell variant="citizen">
+      {/* Dialog เตือนให้บันทึกรหัส (ตอนเพิ่งโหลดหน้าเสร็จ) */}
       <Dialog
         isOpen={isReminderOpen}
         onClose={() => setIsReminderOpen(false)}
-        title="สำคัญ: บันทึกรหัสติดตาม"
+        title="สำคัญ: โปรดบันทึกรหัสติดตาม"
+        size="sm"
       >
-        <div className="space-y-4">
-          <p className="text-sm font-medium text-amber-800">{TRACKING_REMINDER}</p>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-            <p className="text-xs text-amber-700">รหัสติดตาม</p>
-            <p className="mt-1 font-mono text-xl font-bold tracking-widest text-amber-900">{trackingCode || '-'}</p>
+        <div className="space-y-5">
+          <p className="text-sm font-medium text-amber-800 leading-relaxed bg-amber-50 p-3 rounded-lg border border-amber-100">
+            {TRACKING_REMINDER}
+          </p>
+          <div className="rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50 p-5 text-center shadow-sm">
+            <p className="text-sm font-medium text-blue-700">รหัสติดตามของคุณคือ</p>
+            <p className="mt-2 font-mono text-3xl font-bold tracking-widest text-blue-900">{trackingCode || '-'}</p>
           </div>
-          <div className="flex justify-end">
-            <Button type="button" variant="primary" onClick={() => setIsReminderOpen(false)}>
-              รับทราบ
-            </Button>
-          </div>
+          <Button className="w-full" size="lg" variant="primary" onClick={() => setIsReminderOpen(false)}>
+            รับทราบและบันทึกแล้ว
+          </Button>
         </div>
       </Dialog>
 
+      {/* Dialog ยืนยันก่อนเปลี่ยนหน้า */}
       <Dialog
         isOpen={isNavigationConfirmOpen}
         onClose={() => setIsNavigationConfirmOpen(false)}
-        title="ยืนยันก่อนเปลี่ยนหน้า"
+        title="ยืนยันการเปลี่ยนหน้า"
+        size="sm"
       >
-        <div className="space-y-4">
-          <p className="text-sm font-medium text-amber-800">{TRACKING_REMINDER}</p>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsNavigationConfirmOpen(false)}>
-              กลับไปก่อน
+        <div className="space-y-5">
+          <p className="text-sm text-gray-600">
+            คุณได้บันทึกรหัสติดตาม <span className="font-mono font-bold text-gray-900">{trackingCode}</span> ไว้แล้วใช่หรือไม่?
+          </p>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <Button className="flex-1" variant="outline" onClick={() => setIsNavigationConfirmOpen(false)}>
+              กลับไปคัดลอก
             </Button>
-            <Button type="button" variant="primary" onClick={confirmNavigate}>
+            <Button className="flex-1" variant="primary" onClick={confirmNavigate}>
               ยืนยันและไปต่อ
             </Button>
           </div>
         </div>
       </Dialog>
 
-      <div className="mx-auto max-w-lg space-y-6 py-10">
-        <div className="space-y-3 text-center">
-          <CheckCircle size={64} className="mx-auto text-green-500" />
-          <h1 className="text-2xl font-bold text-gray-900">ส่งคำขอสำเร็จ</h1>
-          <p className="text-gray-500">คำขอของคุณได้รับการบันทึกแล้ว</p>
-        </div>
-
-        <div className="space-y-2 rounded-2xl border border-green-200 bg-green-50 p-6 text-center">
-          <p className="text-sm font-medium text-green-700">รหัสติดตามของคุณ</p>
-          <div className="flex items-center justify-center gap-3">
-            <span className="font-mono text-3xl font-bold tracking-widest text-green-800">{trackingCode}</span>
-            <CopyButton text={trackingCode} />
+      <div className="mx-auto max-w-lg space-y-8 py-8 sm:py-12">
+        {/* Success Header */}
+        <div className="space-y-4 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 shadow-inner">
+            <CheckCircle2 size={40} className="text-green-600" />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">ส่งคำขอความช่วยเหลือสำเร็จ</h1>
+            <p className="text-base text-gray-500">ระบบได้รับข้อมูลของคุณเรียบร้อยแล้ว ทีมงานกำลังเร่งดำเนินการ</p>
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">รหัสคำขอ</span>
-            <span className="font-mono text-xs text-gray-700">{requestId || '-'}</span>
+        {/* Tracking Code Highlight */}
+        <div className="relative overflow-hidden rounded-3xl border-2 border-blue-100 bg-white p-6 shadow-sm sm:p-8">
+          <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
+          <p className="text-center text-sm font-bold text-blue-600 uppercase tracking-wider">รหัสติดตามของคุณ</p>
+          <div className="mt-3 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <span className="font-mono text-4xl font-black tracking-[0.2em] text-gray-900 drop-shadow-sm">
+              {trackingCode}
+            </span>
+            <CopyButton text={trackingCode} className="sm:ml-2 bg-blue-50 hover:bg-blue-100" />
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">สถานะ</span>
-            <span className="font-medium text-teal-700">{status || '-'}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">เวลาที่ส่ง</span>
-            <span className="text-gray-700">{submittedAtText || '-'}</span>
+          <div className="mt-6 rounded-xl bg-amber-50/80 p-4 border border-amber-100 flex gap-3 items-start">
+            <AlertTriangle size={20} className="shrink-0 text-amber-600 mt-0.5" />
+            <p className="text-sm font-medium text-amber-800 leading-relaxed">{TRACKING_REMINDER}</p>
           </div>
         </div>
 
-        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-600" />
-          <p className="text-sm font-medium text-amber-800">{TRACKING_REMINDER}</p>
+        {/* Summary Details */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-1">
+          <ul className="divide-y divide-gray-50 text-sm">
+            <li className="flex items-center justify-between p-4">
+              <span className="text-gray-500">รหัสอ้างอิงระบบ (Request ID)</span>
+              <span className="font-mono text-xs font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded-md">{requestId || '-'}</span>
+            </li>
+            <li className="flex items-center justify-between p-4">
+              <span className="text-gray-500">สถานะปัจจุบัน</span>
+              <span className="inline-flex items-center gap-1.5 font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                <ShieldCheck size={14} />
+                {status || '-'}
+              </span>
+            </li>
+            <li className="flex items-center justify-between p-4">
+              <span className="text-gray-500">เวลาที่ส่งคำขอ</span>
+              <span className="font-medium text-gray-900">{submittedAtText || '-'}</span>
+            </li>
+          </ul>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button className="flex-1" variant="primary" onClick={() => requestNavigate(trackHref)}>
-            ตรวจสอบสถานะ
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-3 sm:flex-row pt-2">
+          <Button 
+            className="flex-1 rounded-xl shadow-sm" 
+            size="lg" 
+            variant="primary" 
+            onClick={() => requestNavigate(trackHref)}
+          >
+            ตรวจสอบสถานะคำขอ
           </Button>
-          <Button className="flex-1" variant="outline" onClick={() => requestNavigate(updatesHref)}>
+          <Button 
+            className="flex-1 rounded-xl bg-white" 
+            size="lg" 
+            variant="outline" 
+            onClick={() => requestNavigate(updatesHref)}
+            rightIcon={<ArrowRight size={16} />}
+          >
             แจ้งรายละเอียดเพิ่มเติม
           </Button>
         </div>
@@ -146,7 +177,12 @@ function SuccessContent() {
 
 export default function CitizenSuccessPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">กำลังโหลด...</div>}>
+    <Suspense fallback={
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-gray-500">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+        <p className="text-sm font-medium">กำลังโหลดข้อมูล...</p>
+      </div>
+    }>
       <SuccessContent />
     </Suspense>
   );

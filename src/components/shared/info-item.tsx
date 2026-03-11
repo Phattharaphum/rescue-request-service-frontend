@@ -1,3 +1,4 @@
+// src\components\shared\info-item.tsx
 import React from 'react';
 import { cn } from '@/lib/utils/cn';
 

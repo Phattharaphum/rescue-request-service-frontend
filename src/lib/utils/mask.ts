@@ -1,3 +1,4 @@
+// src\lib\utils\mask.ts
 export function maskPhone(phone: string): string {
   if (!phone) return '';
   const digits = phone.replace(/\D/g, '');

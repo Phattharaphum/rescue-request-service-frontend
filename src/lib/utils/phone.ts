@@ -1,3 +1,4 @@
+// src\lib\utils\phone.ts
 const PHONE_REGEX = /^\d{10}$/;
 
 export function validatePhone(phone: string): boolean {

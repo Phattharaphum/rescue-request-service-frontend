@@ -1,3 +1,4 @@
+// src\lib\hooks\use-query-params.ts
 'use client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCallback } from 'react';

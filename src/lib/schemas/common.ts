@@ -1,3 +1,4 @@
+// src\lib\schemas\common.ts
 import { z } from 'zod';
 
 export const phoneSchema = z
