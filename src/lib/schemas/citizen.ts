@@ -52,7 +52,11 @@ export type RescueRequestFormValues = z.infer<typeof rescueRequestSchema>;
 
 export const trackingLookupSchema = z.object({
   contactPhone: phoneSchema,
-  trackingCode: z.string().min(1, 'กรุณากรอกรหัสติดตาม').max(50, 'รหัสติดตามไม่ถูกต้อง'),
+  trackingCode: z
+    .string()
+    .trim()
+    .min(1, 'กรุณากรอกรหัสติดตาม')
+    .regex(/^\d{6}$/, 'กรุณากรอกรหัสติดตามเป็นตัวเลข 6 หลัก'),
 });
 
 export type TrackingLookupFormValues = z.infer<typeof trackingLookupSchema>;

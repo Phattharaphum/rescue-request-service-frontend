@@ -9,6 +9,7 @@ import { formatDateTime } from '@/lib/utils/date';
 import { formatRequestType, formatSourceChannel } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 import { Badge } from '../ui/badge';
+import { CopyButton } from '@/components/shared/copy-button';
 
 interface RequestMasterCardProps {
   master: RescueRequestMaster;
@@ -34,7 +35,14 @@ export function RequestMasterCard({ master }: RequestMasterCardProps) {
           <InfoItem
             icon={<Hash size={16} className="text-gray-400" />}
             label="รหัสคำขออ้างอิง"
-            value={<span className="font-mono text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{master.requestId}</span>}
+            value={
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                  {master.requestId}
+                </span>
+                <CopyButton text={master.requestId} />
+              </div>
+            }
           />
           <InfoItem
             icon={<Tag size={16} className="text-gray-400" />}

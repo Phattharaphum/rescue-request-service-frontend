@@ -1,16 +1,29 @@
 // src/components/shared/incident-selector.tsx
 'use client';
-import { cn } from '@/lib/utils/cn';
-import { INCIDENTS } from '@/lib/config/incidents';
+
 import { AlertTriangle } from 'lucide-react';
+import type { Incident } from '@/lib/config/incidents';
+import { cn } from '@/lib/utils/cn';
 
 interface IncidentSelectorProps {
   value: string;
   onChange: (v: string) => void;
+  incidents: Incident[];
   className?: string;
+  disabled?: boolean;
+  isLoading?: boolean;
 }
 
-export function IncidentSelector({ value, onChange, className }: IncidentSelectorProps) {
+export function IncidentSelector({
+  value,
+  onChange,
+  incidents,
+  className,
+  disabled,
+  isLoading,
+}: IncidentSelectorProps) {
+  const isDisabled = disabled || isLoading || incidents.length === 0;
+
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
@@ -21,6 +34,7 @@ export function IncidentSelector({ value, onChange, className }: IncidentSelecto
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          disabled={isDisabled}
           className={cn(
             'block w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 shadow-sm transition-colors',
             'hover:border-gray-300',
@@ -28,11 +42,17 @@ export function IncidentSelector({ value, onChange, className }: IncidentSelecto
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {INCIDENTS.map((incident) => (
-            <option key={incident.value} value={incident.value}>
-              {incident.label}
+          {incidents.length === 0 ? (
+            <option value="">
+              {isLoading ? 'กำลังโหลดรายการเหตุการณ์...' : 'ไม่พบรายการเหตุการณ์'}
             </option>
-          ))}
+          ) : (
+            incidents.map((incident) => (
+              <option key={incident.value} value={incident.value}>
+                {incident.label}
+              </option>
+            ))
+          )}
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
           <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">

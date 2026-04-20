@@ -6,8 +6,8 @@ import { LayoutDashboard, List } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 const STAFF_NAV = [
-  { label: 'ภาพรวม', href: '/staff', icon: LayoutDashboard, exact: true },
-  { label: 'รายการตาม Incident', href: '/staff/incidents', icon: List, exact: false },
+  { label: 'ภาพรวม', href: '/admin/incident', icon: LayoutDashboard, exact: true },
+  { label: 'รายการตาม Incident', href: '/admin/pubsub', icon: List, exact: false },
 ];
 
 export function Sidebar() {

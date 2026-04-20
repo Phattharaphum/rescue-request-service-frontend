@@ -44,8 +44,8 @@ export default function IdempotencyPage({ params }: PageProps) {
         <PageHeader
           title="ข้อมูล Idempotency"
           breadcrumbs={[
-            { label: 'แผงควบคุม', href: '/staff' },
-            { label: 'คำขอ', href: `/staff/requests/${requestId}` },
+            { label: 'แผงควบคุม', href: '/admin/incident' },
+            { label: 'คำขอ', href: `/admin/incident/requests/${requestId}` },
             { label: 'Idempotency' },
           ]}
         />
