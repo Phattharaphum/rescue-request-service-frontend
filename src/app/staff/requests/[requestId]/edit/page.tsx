@@ -29,8 +29,8 @@ export default function EditRequestPage({ params }: PageProps) {
         <PageHeader
           title="แก้ไขข้อมูลคำขอ"
           breadcrumbs={[
-            { label: 'แผงควบคุม', href: '/staff' },
-            { label: 'คำขอ', href: `/staff/requests/${requestId}` },
+            { label: 'แผงควบคุม', href: '/admin/incident' },
+            { label: 'คำขอ', href: `/admin/incident/requests/${requestId}` },
             { label: 'แก้ไข' },
           ]}
         />
@@ -42,7 +42,7 @@ export default function EditRequestPage({ params }: PageProps) {
             requestId={requestId}
             currentData={data.master}
             stateVersion={data.currentState.stateVersion}
-            onSuccess={() => router.push(`/staff/requests/${requestId}`)}
+            onSuccess={() => router.push(`/admin/incident/requests/${requestId}`)}
           />
         )}
       </div>

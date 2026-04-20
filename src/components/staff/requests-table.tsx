@@ -98,7 +98,7 @@ export function RequestsTable({ items, isLoading }: RequestsTableProps) {
             <TableRow key={item.requestId} className="hover:bg-blue-50/30 transition-colors">
               <TableCell>
                 <Link
-                  href={`/staff/requests/${item.requestId}`}
+                  href={`/admin/incident/requests/${item.requestId}`}
                   className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 font-mono text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 hover:text-blue-900"
                   title="ดูรายละเอียดคำขอ"
                 >

@@ -14,6 +14,9 @@ export const API_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL,
 );
 
+export const INCIDENTS_API_URL =
+  process.env.NEXT_PUBLIC_INCIDENTS_API_URL?.trim() || `${API_BASE_URL}incidents`;
+
 export const SNS_TOPIC_ARN =
   process.env.NEXT_PUBLIC_SNS_TOPIC_ARN ?? DEFAULT_SNS_TOPIC_ARN;
 

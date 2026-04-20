@@ -1,22 +1,22 @@
 // src/components/citizen/rescue-request-form.tsx
 'use client';
 
-import { useRef, useState } from 'react';
-import { useForm, Controller, type Resolver } from 'react-hook-form';
+import { useEffect, useRef, useState } from 'react';
+import { useForm, Controller, type Resolver, type FieldError, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LocateFixed, Info } from 'lucide-react';
+import { AlertCircle, LocateFixed, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { SpecialNeedsInput } from '@/components/citizen/special-needs-input';
 import { rescueRequestSchema, RescueRequestFormValues } from '@/lib/schemas/citizen';
 import { ApiRequestError } from '@/lib/api/client';
 import { createRescueRequest } from '@/lib/api/rescue';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
-import { INCIDENTS } from '@/lib/config/incidents';
+import { useIncidents } from '@/lib/hooks/use-incidents';
 
 const REQUEST_TYPE_OPTIONS = [
   { value: 'EVACUATION', label: 'อพยพออกจากพื้นที่' },
@@ -25,11 +25,81 @@ const REQUEST_TYPE_OPTIONS = [
   { value: 'OTHER', label: 'เครื่องใช้จำเป็นอื่นๆ' },
 ];
 
-const INCIDENT_OPTIONS = INCIDENTS.map((i) => ({ value: i.value, label: i.label }));
 const MAX_CREATE_RETRIES = 3;
+const FIELD_LABELS: Record<string, string> = {
+  incidentId: 'Disaster incident',
+  requestType: 'Request type',
+  description: 'Incident details',
+  peopleCount: 'Affected people count',
+  latitude: 'Latitude',
+  longitude: 'Longitude',
+  locationDetails: 'Location details',
+  addressLine: 'Address',
+  subdistrict: 'Subdistrict',
+  district: 'District',
+  province: 'Province',
+  contactName: 'Contact name',
+  contactPhone: 'Contact phone',
+  specialNeeds: 'Special needs',
+};
+
+interface ValidationIssue {
+  field: string;
+  message: string;
+}
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isFieldError(error: unknown): error is FieldError {
+  return !!error && typeof error === 'object' && 'message' in error;
+}
+
+function collectValidationIssues(
+  errors: FieldErrors<RescueRequestFormValues>,
+  parentPath = '',
+): ValidationIssue[] {
+  return Object.entries(errors).flatMap(([key, value]) => {
+    if (!value) return [];
+
+    const currentPath = parentPath ? `${parentPath}.${key}` : key;
+
+    if (Array.isArray(value)) {
+      return value.flatMap((entry, index) =>
+        collectValidationIssues(
+          (entry ?? {}) as FieldErrors<RescueRequestFormValues>,
+          `${currentPath}[${index}]`,
+        ),
+      );
+    }
+
+    if (isFieldError(value)) {
+      return [
+        {
+          field: currentPath,
+          message:
+            typeof value.message === 'string' && value.message
+              ? value.message
+              : 'Invalid value',
+        },
+      ];
+    }
+
+    if (typeof value === 'object') {
+      return collectValidationIssues(
+        value as FieldErrors<RescueRequestFormValues>,
+        currentPath,
+      );
+    }
+
+    return [];
+  });
+}
+
+function getFieldLabel(path: string): string {
+  const rootKey = path.split('.')[0]?.replace(/\[\d+\]/g, '') ?? path;
+  return FIELD_LABELS[rootKey] ?? rootKey;
 }
 
 function isTransactionConflict(err: unknown): boolean {
@@ -54,22 +124,42 @@ interface RescueRequestFormProps {
 export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isMockingLocation, setIsMockingLocation] = useState(false);
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
+  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const submitLockRef = useRef(false);
+  const {
+    incidents,
+    isLoading: isLoadingIncidents,
+    isError: isIncidentsError,
+  } = useIncidents();
+  const incidentOptions = incidents.map((item) => ({ value: item.value, label: item.label }));
 
   const {
     register,
     handleSubmit,
     control,
     setValue,
+    getValues,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<RescueRequestFormValues>({
     resolver: zodResolver(rescueRequestSchema) as unknown as Resolver<RescueRequestFormValues>,
     defaultValues: {
-      incidentId: INCIDENTS[0]?.value ?? '',
+      incidentId: '',
       peopleCount: 1,
       sourceChannel: 'WEB',
     },
   });
+
+  useEffect(() => {
+    if (!incidents.length) return;
+
+    const selectedIncidentId = getValues('incidentId');
+    const hasSelectedIncident = incidents.some((item) => item.value === selectedIncidentId);
+    if (!hasSelectedIncident) {
+      setValue('incidentId', incidents[0].value, { shouldValidate: true });
+    }
+  }, [incidents, getValues, setValue]);
 
   const mockGpsLocation = () => {
     setIsMockingLocation(true);
@@ -86,6 +176,8 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
   const onSubmit = async (data: RescueRequestFormValues) => {
     if (submitLockRef.current) return;
     submitLockRef.current = true;
+    setIsValidationModalOpen(false);
+    setValidationIssues([]);
     setApiError(null);
 
     try {
@@ -130,9 +222,25 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
     }
   };
 
+  const onInvalid = (formErrors: FieldErrors<RescueRequestFormValues>) => {
+    const issues = collectValidationIssues(formErrors);
+    const dedupedIssues = Array.from(
+      new Map(issues.map((issue) => [issue.field, issue])).values(),
+    );
+
+    setValidationIssues(dedupedIssues);
+    setIsValidationModalOpen(true);
+
+    const firstErrorField = dedupedIssues[0]?.field?.split('.')[0]?.replace(/\[\d+\]/g, '');
+    if (firstErrorField) {
+      setFocus(firstErrorField as keyof RescueRequestFormValues);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
-      {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
+    <>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-8">
+        {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
 
       {/* Info Banner */}
       <div className="rounded-2xl border border-blue-100 bg-blue-50/50 px-5 py-4">
@@ -158,10 +266,18 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
               <Select
                 label="เหตุการณ์ภัยพิบัติ"
                 required
-                options={INCIDENT_OPTIONS}
+                options={incidentOptions}
                 value={field.value}
                 onChange={field.onChange}
                 error={errors.incidentId?.message}
+                disabled={isLoadingIncidents || incidentOptions.length === 0 || isSubmitting}
+                helperText={
+                  isLoadingIncidents
+                    ? 'กำลังโหลดรายการเหตุการณ์...'
+                    : isIncidentsError
+                      ? 'ไม่สามารถโหลดรายการเหตุการณ์ได้ กรุณาลองใหม่อีกครั้ง'
+                      : undefined
+                }
               />
             )}
           />
@@ -339,6 +455,45 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
           {isSubmitting ? 'กำลังส่งคำขอ...' : 'ยืนยันการส่งคำขอความช่วยเหลือ'}
         </Button>
       </div>
-    </form>
+      </form>
+
+      <Dialog
+        isOpen={isValidationModalOpen}
+        onClose={() => setIsValidationModalOpen(false)}
+        size="md"
+        title="Form validation failed"
+        description="Please complete required fields before submitting."
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span>
+              Found {validationIssues.length || 1} issue{validationIssues.length > 1 ? 's' : ''}.
+            </span>
+          </div>
+
+          <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
+            {validationIssues.length > 0 ? (
+              validationIssues.map((issue) => (
+                <div key={issue.field} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                  <p className="text-sm font-semibold text-gray-900">{getFieldLabel(issue.field)}</p>
+                  <p className="text-sm text-red-600">{issue.message}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                <p className="text-sm text-gray-700">Some required fields are missing or invalid.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end">
+            <Button type="button" variant="primary" onClick={() => setIsValidationModalOpen(false)}>
+              Review form
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 }

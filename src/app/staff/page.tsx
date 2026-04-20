@@ -25,7 +25,7 @@ const STATUS_OPTIONS: RequestStatus[] = [
 ];
 
 export default function StaffDashboardPage() {
-  const { incidentId, setIncidentId } = useIncident();
+  const { incidentId, setIncidentId, incidents, isLoadingIncidents } = useIncident();
   const [statusFilter, setStatusFilter] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevCursors, setPrevCursors] = useState<string[]>([]);
@@ -75,7 +75,7 @@ export default function StaffDashboardPage() {
           title="แดชบอร์ดจัดการคำขอช่วยเหลือ"
           actions={
             <div className="flex flex-wrap items-center gap-3">
-              <Link href="/pubsub">
+              <Link href="/admin/pubsub">
                 <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50">
                   <Activity size={16} className="text-blue-600" />
                   <span className="hidden sm:inline">สตรีมข้อมูล (Pub/Sub)</span>
@@ -93,7 +93,12 @@ export default function StaffDashboardPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end gap-5">
             <div className="w-full sm:w-72">
-              <IncidentSelector value={incidentId} onChange={onChangeIncident} />
+              <IncidentSelector
+                value={incidentId}
+                onChange={onChangeIncident}
+                incidents={incidents}
+                isLoading={isLoadingIncidents}
+              />
             </div>
             
             <div className="flex-1 space-y-2">

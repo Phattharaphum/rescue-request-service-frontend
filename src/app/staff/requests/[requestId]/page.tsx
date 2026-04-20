@@ -205,9 +205,8 @@ export default function RequestDetailPage({ params }: PageProps) {
         <PageHeader
           title="รายละเอียดคำขอ"
           breadcrumbs={[
-            { label: 'แดชบอร์ด', href: '/staff' },
-            { label: 'รายการคำขอ' },
-            { label: `${requestId.slice(0, 8)}...` },
+            { label: 'แดชบอร์ด', href: '/admin/incident' },
+            { label: requestId },
           ]}
           actions={
             <Button variant="outline" size="sm" onClick={() => refetch()} className="bg-white rounded-xl shadow-sm">

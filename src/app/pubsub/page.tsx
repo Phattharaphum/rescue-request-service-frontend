@@ -14,7 +14,7 @@ export default function PubSubPage() {
         <PageHeader
           title="สตรีมเหตุการณ์ (Pub/Sub Events)"
           breadcrumbs={[
-            { label: 'แดชบอร์ด', href: '/staff' },
+            { label: 'แดชบอร์ด', href: '/admin/incident' },
             { label: 'สตรีมเหตุการณ์' }
           ]}
         />

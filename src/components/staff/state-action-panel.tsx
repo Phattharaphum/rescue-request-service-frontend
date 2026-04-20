@@ -162,7 +162,7 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
       }
     },
     onSuccess: async (result) => {
-      toast.show('อัปเดตสถานะสำเร็จ', 'success');
+      toast.show(`อัปเดตสถานะสำเร็จ (แดชบอร์ด > ${requestId})`, 'success');
       queryClient.invalidateQueries({ queryKey: ['request-detail', requestId] });
       setActiveAction(null);
       reset(resetValues());

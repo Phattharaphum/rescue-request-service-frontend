@@ -21,8 +21,8 @@ export default function RequestEventsPage({ params }: PageProps) {
         <PageHeader
           title="ประวัติสถานะ"
           breadcrumbs={[
-            { label: 'แผงควบคุม', href: '/staff' },
-            { label: 'คำขอ', href: `/staff/requests/${requestId}` },
+            { label: 'แผงควบคุม', href: '/admin/incident' },
+            { label: 'คำขอ', href: `/admin/incident/requests/${requestId}` },
             { label: 'ประวัติสถานะ' },
           ]}
           actions={

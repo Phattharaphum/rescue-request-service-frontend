@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { AlertTriangle, Activity, ClipboardList, SearchCheck, Siren } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { DeveloperSection } from '@/components/home/developer-section';
 
 const TEXT = {
   title: 'ระบบจัดการคำขอช่วยเหลือผู้ประสบภัย',
@@ -29,7 +30,7 @@ const HOME_ACTIONS = [
   {
     label: 'จัดการรายการคำขอ',
     description: 'ระบบกระดานจัดการสำหรับเจ้าหน้าที่ (Staff)',
-    href: '/staff',
+    href: '/admin/incident',
     icon: ClipboardList,
     className: 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-200 hover:shadow-md',
     iconBg: 'bg-emerald-100 text-emerald-600',
@@ -37,18 +38,32 @@ const HOME_ACTIONS = [
   {
     label: 'ติดตามเหตุการณ์ (Pub/Sub)',
     description: 'ดูสตรีมข้อมูลและเหตุการณ์แบบเรียลไทม์',
-    href: '/pubsub',
+    href: '/admin/pubsub',
     icon: Activity,
     className: 'border-cyan-100 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-200 hover:shadow-md',
     iconBg: 'bg-cyan-100 text-cyan-600',
   },
 ];
 
+const API_DOCUMENT_URL =
+  'https://github.com/Phattharaphum/rescue-request-service/blob/main/docs/api-summary.md';
+
+function resolveApiBaseUrlFromProxyTarget(apiProxyTarget: string | undefined): string {
+  const trimmed = apiProxyTarget?.trim() ?? '';
+  if (!trimmed) return '';
+
+  const withoutTrailingSlashes = trimmed.replace(/\/+$/, '');
+  return withoutTrailingSlashes.endsWith('/v1')
+    ? withoutTrailingSlashes
+    : `${withoutTrailingSlashes}/v1`;
+}
+
 export default function HomePage() {
+  const apiBaseUrl = resolveApiBaseUrlFromProxyTarget(process.env.API_PROXY_TARGET);
+
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-8 py-10 px-4 sm:px-0">
-        
         {/* Header Section */}
         <section className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
@@ -61,7 +76,7 @@ export default function HomePage() {
               </h1>
               <p className="flex items-center gap-2 text-sm font-medium text-gray-500">
                 <span className="inline-block h-2 w-2 rounded-full bg-green-500"></span>
-                {TEXT.name} • {TEXT.studentId}
+                {TEXT.name} - {TEXT.studentId}
               </p>
             </div>
           </div>
@@ -93,6 +108,10 @@ export default function HomePage() {
           })}
         </section>
 
+        <DeveloperSection
+          apiBaseUrl={apiBaseUrl}
+          apiDocumentUrl={API_DOCUMENT_URL}
+        />
       </div>
     </AppShell>
   );

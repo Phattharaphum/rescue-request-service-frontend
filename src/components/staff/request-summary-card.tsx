@@ -20,7 +20,7 @@ export function RequestSummaryCard({ item }: RequestSummaryCardProps) {
         <div className="flex flex-col gap-2 py-1">
           <div className="flex items-start justify-between gap-2">
             <Link
-              href={`/staff/requests/${item.requestId}`}
+              href={`/admin/incident/requests/${item.requestId}`}
               className="font-mono text-xs text-teal-600 hover:text-teal-800 hover:underline flex items-center gap-1"
             >
               {item.requestId.slice(0, 12)}…
