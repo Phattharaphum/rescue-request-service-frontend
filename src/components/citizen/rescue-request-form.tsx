@@ -399,7 +399,7 @@ export function RescueRequestForm({ onSuccess }: RescueRequestFormProps) {
           <Input
             label="ชื่อ-นามสกุล ผู้ติดต่อ"
             required
-            placeholder="เช่น สมชาย ใจดี"
+            placeholder="เช่น พรทิพย์ สุขใจ"
             {...register('contactName')}
             error={errors.contactName?.message}
           />

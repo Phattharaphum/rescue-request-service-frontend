@@ -1,23 +1,37 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-function resolveApiBaseUrlFromProxyTarget(apiProxyTarget: string | undefined): string {
-  const trimmed = apiProxyTarget?.trim() ?? '';
+function normalizeBaseUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, '');
   if (!trimmed) return '';
-
-  const withoutTrailingSlashes = trimmed.replace(/\/+$/, '');
-  return withoutTrailingSlashes.endsWith('/v1')
-    ? withoutTrailingSlashes
-    : `${withoutTrailingSlashes}/v1`;
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
 }
 
-export async function GET() {
-  const apiBaseUrl = resolveApiBaseUrlFromProxyTarget(process.env.API_PROXY_TARGET);
+function resolveApiBaseUrl(request: NextRequest): string {
+  const proxyTarget = process.env.API_PROXY_TARGET?.trim();
+  if (proxyTarget) {
+    return normalizeBaseUrl(proxyTarget);
+  }
+
+  const publicBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (!publicBase) return '';
+
+  if (publicBase.startsWith('http://') || publicBase.startsWith('https://')) {
+    return normalizeBaseUrl(publicBase);
+  }
+
+  const relative = publicBase.startsWith('/') ? publicBase : `/${publicBase}`;
+  return normalizeBaseUrl(`${request.nextUrl.origin}${relative}`);
+}
+
+export async function GET(request: NextRequest) {
+  const apiBaseUrl = resolveApiBaseUrl(request);
 
   if (!apiBaseUrl) {
     return NextResponse.json(
       {
         ok: false,
-        message: 'ไม่พบค่า API_PROXY_TARGET ใน environment',
+        message:
+          'ไม่พบค่า API base URL สำหรับทดสอบ (โปรดตั้ง API_PROXY_TARGET หรือ NEXT_PUBLIC_API_BASE_URL)',
       },
       { status: 500 },
     );

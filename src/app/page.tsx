@@ -48,18 +48,39 @@ const HOME_ACTIONS = [
 const API_DOCUMENT_URL =
   'https://github.com/Phattharaphum/rescue-request-service/blob/main/docs/api-summary.md';
 
-function resolveApiBaseUrlFromProxyTarget(apiProxyTarget: string | undefined): string {
-  const trimmed = apiProxyTarget?.trim() ?? '';
-  if (!trimmed) return '';
+function normalizeApiBaseUrl(url: string): string {
+  const withoutTrailingSlashes = url.trim().replace(/\/+$/, '');
+  if (!withoutTrailingSlashes) return '';
 
-  const withoutTrailingSlashes = trimmed.replace(/\/+$/, '');
   return withoutTrailingSlashes.endsWith('/v1')
     ? withoutTrailingSlashes
     : `${withoutTrailingSlashes}/v1`;
 }
 
+function resolveApiBaseUrl(
+  apiProxyTarget: string | undefined,
+  publicApiBaseUrl: string | undefined,
+): string {
+  if (apiProxyTarget?.trim()) {
+    return normalizeApiBaseUrl(apiProxyTarget);
+  }
+
+  const publicBase = publicApiBaseUrl?.trim() ?? '';
+  if (!publicBase) return '';
+
+  if (publicBase.startsWith('http://') || publicBase.startsWith('https://')) {
+    return normalizeApiBaseUrl(publicBase);
+  }
+
+  return publicBase.replace(/\/+$/, '');
+}
+
 export default function HomePage() {
-  const apiBaseUrl = resolveApiBaseUrlFromProxyTarget(process.env.API_PROXY_TARGET);
+  const apiBaseUrl = resolveApiBaseUrl(
+    process.env.API_PROXY_TARGET,
+    process.env.NEXT_PUBLIC_API_BASE_URL,
+  );
+  const snsTopicArn = (process.env.NEXT_PUBLIC_SNS_TOPIC_ARN ?? '').trim();
 
   return (
     <AppShell>
@@ -111,6 +132,7 @@ export default function HomePage() {
         <DeveloperSection
           apiBaseUrl={apiBaseUrl}
           apiDocumentUrl={API_DOCUMENT_URL}
+          snsTopicArn={snsTopicArn}
         />
       </div>
     </AppShell>

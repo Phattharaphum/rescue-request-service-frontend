@@ -42,7 +42,7 @@ function CitizenTrackPageContent() {
             <p className="font-bold text-base">ข้อมูลที่ต้องใช้ในการค้นหา</p>
             <ul className="list-inside list-disc space-y-1 text-blue-700 leading-relaxed">
               <li><span className="font-medium text-blue-800">เบอร์โทรศัพท์</span> ที่ระบุไว้ตอนแจ้งคำขอ</li>
-              <li><span className="font-medium text-blue-800">รหัสติดตาม (Tracking Code)</span> ที่ได้รับหลังจากส่งคำขอสำเร็จ</li>
+              <li><span className="font-medium text-blue-800">รหัสติดตาม (Tracking Code)</span> ตัวเลข 6 หลักที่ได้รับหลังจากส่งคำขอสำเร็จ</li>
             </ul>
           </div>
         </div>
