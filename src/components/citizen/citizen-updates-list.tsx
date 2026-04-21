@@ -27,7 +27,7 @@ interface CitizenUpdatesListProps {
 }
 
 function SpecialNeedsChips({ value }: { value: unknown }) {
-  const parsed = parseSpecialNeeds(typeof value === 'string' ? value : '');
+  const parsed = parseSpecialNeeds(value);
   const chips =
     parsed.mode === 'chip'
       ? (parsed.items ?? [])

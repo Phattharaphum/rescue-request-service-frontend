@@ -21,24 +21,28 @@ function escapeHtml(str: string): string {
 }
 
 function colorizeJson(json: string): string {
-  return escapeHtml(json).replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-    (match) => {
-      if (/^"/.test(match)) {
-        if (/:$/.test(match)) {
-          return `<span class="text-gray-500 font-medium">${match}</span>`;
-        }
-        return `<span class="text-green-700">${match}</span>`;
+  const escapedJson = escapeHtml(json);
+  const tokenPattern =
+    /(&quot;(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\])*&quot;(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g;
+
+  return escapedJson.replace(tokenPattern, (match) => {
+    if (match.startsWith('&quot;')) {
+      if (match.endsWith(':')) {
+        return `<span class="text-gray-500 font-medium">${match}</span>`;
       }
-      if (/true|false/.test(match)) {
-        return `<span class="text-amber-600">${match}</span>`;
-      }
-      if (/null/.test(match)) {
-        return `<span class="text-red-500">${match}</span>`;
-      }
-      return `<span class="text-blue-600">${match}</span>`;
-    },
-  );
+      return `<span class="text-green-700">${match}</span>`;
+    }
+
+    if (match === 'true' || match === 'false') {
+      return `<span class="text-amber-600">${match}</span>`;
+    }
+
+    if (match === 'null') {
+      return `<span class="text-red-500">${match}</span>`;
+    }
+
+    return `<span class="text-blue-600">${match}</span>`;
+  });
 }
 
 export function JsonViewer({ data, collapsed = false, maxHeight = '320px', className }: JsonViewerProps) {

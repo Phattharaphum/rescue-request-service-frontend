@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Search, ShieldCheck } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -26,7 +26,6 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<TrackingLookupFormValues>({
     resolver: zodResolver(trackingLookupSchema),
@@ -36,16 +35,18 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
     },
   });
 
-  const trackingCodeValue = watch('trackingCode') ?? '';
-  const trackingCodeDigits = sanitizeTrackingCode(trackingCodeValue);
-  const trackingProgress = useMemo(
-    () => Math.min((trackingCodeDigits.length / 6) * 100, 100),
-    [trackingCodeDigits.length],
-  );
-
   const trackingCodeField = register('trackingCode', {
     onChange: (event) => {
       const digits = sanitizeTrackingCode(String(event.target.value ?? ''));
+      event.target.value = digits;
+    },
+  });
+
+  const contactPhoneField = register('contactPhone', {
+    onChange: (event) => {
+      const digits = String(event.target.value ?? '')
+        .replace(/\D/g, '')
+        .slice(0, 10);
       event.target.value = digits;
     },
   });
@@ -76,34 +77,42 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
       <CardContent className="pt-2">
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
           {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
+          <div className="space-y-3 rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4">
+            <Input
+              label="เบอร์โทรศัพท์ที่ใช้แจ้งคำขอ"
+              required
+              type="tel"
+              placeholder="เช่น 0812345678"
+              className="font-mono text-center text-2xl font-semibold tracking-[0.16em] placeholder:tracking-normal"
+              inputMode="numeric"
+              autoComplete="tel"
+              maxLength={10}
+              helperText="กรอกเบอร์โทรศัพท์ที่ใช้แจ้งคำขอ"
+              {...contactPhoneField}
+              onPaste={(event) => {
+                event.preventDefault();
+                const pasted = event.clipboardData.getData('text');
+                const digits = pasted.replace(/\D/g, '').slice(0, 10);
+                setValue('contactPhone', digits, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                  shouldTouch: true,
+                });
+              }}
+              error={errors.contactPhone?.message}
+            />
+          </div>
 
-          <Input
-            label="เบอร์โทรศัพท์ที่ใช้แจ้งคำขอ"
-            required
-            type="tel"
-            placeholder="เช่น 0812345678"
-            inputMode="numeric"
-            maxLength={10}
-            {...register('contactPhone', {
-              onChange: (event) => {
-                const digits = String(event.target.value ?? '')
-                  .replace(/\D/g, '')
-                  .slice(0, 10);
-                event.target.value = digits;
-              },
-            })}
-            error={errors.contactPhone?.message}
-          />
-
-          <div className="space-y-2">
+          <div className="space-y-3 rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50/70 to-white p-4">
             <Input
               label="รหัสติดตาม (Tracking Code)"
               required
               placeholder="เช่น 123456"
-              className="font-mono text-center text-xl tracking-[0.35em] placeholder:tracking-normal"
+              className="font-mono text-center text-2xl font-semibold tracking-[0.28em] placeholder:tracking-normal"
               inputMode="numeric"
               autoComplete="one-time-code"
               maxLength={6}
+              helperText="กรอกหรือวางรหัสติดตามตัวเลข 6 หลัก"
               {...trackingCodeField}
               onPaste={(event) => {
                 event.preventDefault();
@@ -118,31 +127,6 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
               error={errors.trackingCode?.message}
             />
 
-            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-blue-700">
-                <span className="inline-flex items-center gap-1">
-                  <ShieldCheck size={14} />
-                  รองรับเฉพาะตัวเลข 6 หลัก
-                </span>
-                <span>{trackingCodeDigits.length}/6</span>
-              </div>
-              <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-blue-100">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-all duration-300"
-                  style={{ width: `${trackingProgress}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-6 gap-2">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="rounded-md border border-blue-200 bg-white py-2 text-center font-mono text-sm font-bold text-blue-900"
-                  >
-                    {trackingCodeDigits[index] ?? '-'}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="pt-4">
