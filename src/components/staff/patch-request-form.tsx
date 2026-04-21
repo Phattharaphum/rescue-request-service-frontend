@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { patchRequestSchema, PatchRequestFormValues } from '@/lib/schemas/staff';
 import { patchRequest } from '@/lib/api/rescue';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
+import { parseSpecialNeeds, serializeSpecialNeeds } from '@/lib/utils/special-needs';
 import { RescueRequestMaster } from '@/types/rescue';
 
 interface PatchRequestFormProps {
@@ -22,6 +23,12 @@ interface PatchRequestFormProps {
   stateVersion: number;
   currentData: Partial<RescueRequestMaster>;
   onSuccess?: () => void;
+}
+
+function normalizeSpecialNeedsForForm(value: RescueRequestMaster['specialNeeds'] | undefined): string {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  return serializeSpecialNeeds(parseSpecialNeeds(value));
 }
 
 export function PatchRequestForm({
@@ -44,7 +51,7 @@ export function PatchRequestForm({
     defaultValues: {
       description: currentData.description ?? '',
       peopleCount: currentData.peopleCount,
-      specialNeeds: currentData.specialNeeds ?? '',
+      specialNeeds: normalizeSpecialNeedsForForm(currentData.specialNeeds),
       locationDetails: currentData.locationDetails ?? '',
       addressLine: currentData.addressLine ?? '',
     },

@@ -37,6 +37,18 @@ export type UpdateType =
 
 export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
+export interface SpecialNeedsStructuredValue {
+  mode?: 'chip' | 'text';
+  items?: string[];
+  text?: string;
+}
+
+export type SpecialNeedsValue =
+  | string
+  | string[]
+  | SpecialNeedsStructuredValue
+  | null;
+
 export interface RescueRequestCreateInput {
   incidentId: string;
   requestType: RequestType;
@@ -108,7 +120,7 @@ export interface CitizenStatusResponse {
   nextSuggestedAction?: string | null;
   description?: string | null;
   peopleCount?: number | null;
-  specialNeeds?: string | null;
+  specialNeeds?: SpecialNeedsValue;
   submittedAt?: string | null;
   lastCitizenUpdateAt?: string | null;
   contactName?: string | null;
@@ -154,7 +166,7 @@ export interface RescueRequestMaster {
   requestType: RequestType;
   description: string;
   peopleCount: number;
-  specialNeeds?: string | null;
+  specialNeeds?: SpecialNeedsValue;
   latitude: number;
   longitude: number;
   contactName: string;

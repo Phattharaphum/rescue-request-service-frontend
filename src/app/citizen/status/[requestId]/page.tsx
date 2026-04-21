@@ -19,6 +19,7 @@ import { formatDateTime } from '@/lib/utils/date';
 import { formatStatus, formatUpdateType } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 import { CitizenUpdateItem, StatusEvent } from '@/types/rescue';
+import { cn } from '@/lib/utils/cn';
 
 interface PageProps {
   params: Promise<{ requestId: string }>;
@@ -55,6 +56,7 @@ function EventTimeline({ events }: { events: StatusEvent[] }) {
   const orderedEvents = [...events].sort(
     (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
   );
+  const latestEventId = orderedEvents[orderedEvents.length - 1]?.eventId;
 
   if (orderedEvents.length === 0) {
     return (
@@ -71,75 +73,95 @@ function EventTimeline({ events }: { events: StatusEvent[] }) {
     <Card>
       <CardHeader title="ประวัติการดำเนินการ" />
       <CardContent>
-        <div className="space-y-6 mt-2">
-          {orderedEvents.map((event, idx) => (
-            <div key={event.eventId} className="relative pl-6">
-              {idx < orderedEvents.length - 1 && (
-                <div className="absolute -bottom-6 left-2.25 top-6 w-px bg-blue-100" />
-              )}
-              <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-white bg-blue-500 shadow-sm" />
+        <ol className="relative mt-2 space-y-4 border-l border-gray-200 pl-5">
+          {orderedEvents.map((event, idx) => {
+            const isLatest = event.eventId === latestEventId;
 
-              <div className="space-y-2.5 rounded-xl border border-gray-100 bg-gray-50/50 p-4 transition-colors hover:bg-gray-50">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={event.newStatus} size="sm" dot />
-                  <span className="text-xs font-medium text-gray-400">ครั้งที่ {event.version}</span>
-                  <span className="ml-auto text-xs font-medium text-gray-500">{formatDateTime(event.occurredAt)}</span>
-                </div>
-
-                <div className="text-sm font-medium text-gray-900">
-                  {event.previousStatus ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 line-through">{formatStatus(event.previousStatus)}</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="text-blue-700">{formatStatus(event.newStatus)}</span>
-                    </div>
-                  ) : (
-                    <span className="text-blue-700">เริ่มต้นคำขอ: {formatStatus(event.newStatus)}</span>
-                  )}
-                </div>
-
-                {idx > 0 && (
-                  <p className="text-xs font-medium text-gray-500">
-                    ใช้เวลาดำเนินการ: <span className="text-gray-700">{formatDurationBetween(orderedEvents[idx - 1].occurredAt, event.occurredAt)}</span>
-                  </p>
+            return (
+              <li key={event.eventId} className="relative">
+                {isLatest ? (
+                  <span className="absolute -left-[1.8rem] top-5 flex h-4 w-4 items-center justify-center">
+                    <span className="absolute h-4 w-4 rounded-full bg-blue-300/70 animate-ping" />
+                    <span className="relative h-3 w-3 rounded-full border-2 border-white bg-blue-600 shadow-sm" />
+                  </span>
+                ) : (
+                  <span className="absolute -left-[1.8rem] top-5 h-3 w-3 rounded-full border-2 border-white bg-gray-300 shadow-sm" />
                 )}
 
-                {(event.changeReason ||
-                  event.responderUnitId ||
-                  (event.priorityScore !== null && event.priorityScore !== undefined)) && (
-                  <div className="space-y-1.5 rounded-lg bg-white p-3 text-xs text-gray-600 shadow-sm border border-gray-100">
-                    {event.changeReason && <p><span className="font-semibold text-gray-900">เหตุผล:</span> {event.changeReason}</p>}
-                    {event.responderUnitId && <p><span className="font-semibold text-gray-900">หน่วยปฏิบัติการ:</span> {event.responderUnitId}</p>}
-                    {event.priorityScore !== null && event.priorityScore !== undefined && (
-                      <p><span className="font-semibold text-gray-900">คะแนนความเร่งด่วน:</span> {event.priorityScore}</p>
+                <div
+                  className={cn(
+                    'space-y-2.5 rounded-2xl border p-4 transition-all',
+                    isLatest
+                      ? 'border-blue-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-sm'
+                      : 'border-gray-100 bg-white',
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={event.newStatus} size="sm" dot />
+                    {isLatest && (
+                      <Badge variant="blue" size="sm" className="animate-pulse">
+                        Latest
+                      </Badge>
+                    )}
+                    <span className="text-xs font-medium text-gray-400">ครั้งที่ {event.version}</span>
+                    <span className="ml-auto text-xs font-medium text-gray-500">{formatDateTime(event.occurredAt)}</span>
+                  </div>
+
+                  <div className="text-sm font-medium text-gray-900">
+                    {event.previousStatus ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 line-through">{formatStatus(event.previousStatus)}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="text-blue-700">{formatStatus(event.newStatus)}</span>
+                      </div>
+                    ) : (
+                      <span className="text-blue-700">เริ่มต้นคำขอ: {formatStatus(event.newStatus)}</span>
                     )}
                   </div>
-                )}
 
-                {event.meta && Object.keys(event.meta).length > 0 && (
-                  <div className="rounded-lg border border-gray-100 bg-white p-3 text-xs text-gray-700 shadow-sm">
-                    <p className="mb-2 font-bold text-gray-900 border-b border-gray-50 pb-1">ข้อมูลเชิงลึกเพิ่มเติม</p>
-                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                      {Object.entries(event.meta).map(([key, value]) => (
-                        <p key={key} className="truncate">
-                          <span className="font-medium text-gray-500">{key}: </span>
-                          <span className="text-gray-900">{formatValue(value)}</span>
-                        </p>
-                      ))}
+                  {idx > 0 && (
+                    <p className="text-xs font-medium text-gray-500">
+                      ใช้เวลาดำเนินการ: <span className="text-gray-700">{formatDurationBetween(orderedEvents[idx - 1].occurredAt, event.occurredAt)}</span>
+                    </p>
+                  )}
+
+                  {(event.changeReason ||
+                    event.responderUnitId ||
+                    (event.priorityScore !== null && event.priorityScore !== undefined)) && (
+                    <div className="space-y-1.5 rounded-lg bg-white p-3 text-xs text-gray-600 shadow-sm border border-gray-100">
+                      {event.changeReason && <p><span className="font-semibold text-gray-900">เหตุผล:</span> {event.changeReason}</p>}
+                      {event.responderUnitId && <p><span className="font-semibold text-gray-900">หน่วยปฏิบัติการ:</span> {event.responderUnitId}</p>}
+                      {event.priorityScore !== null && event.priorityScore !== undefined && (
+                        <p><span className="font-semibold text-gray-900">คะแนนความเร่งด่วน:</span> {event.priorityScore}</p>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                  )}
+
+                  {event.meta && Object.keys(event.meta).length > 0 && (
+                    <div className="rounded-lg border border-gray-100 bg-white p-3 text-xs text-gray-700 shadow-sm">
+                      <p className="mb-2 font-bold text-gray-900 border-b border-gray-50 pb-1">ข้อมูลเชิงลึกเพิ่มเติม</p>
+                      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                        {Object.entries(event.meta).map(([key, value]) => (
+                          <p key={key} className="truncate">
+                            <span className="font-medium text-gray-500">{key}: </span>
+                            <span className="text-gray-900">{formatValue(value)}</span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       </CardContent>
     </Card>
   );
 }
 
 function SpecialNeedsChips({ value }: { value: unknown }) {
-  const parsed = parseSpecialNeeds(typeof value === 'string' ? value : '');
+  const parsed = parseSpecialNeeds(value);
   const chips = parsed.mode === 'chip' ? (parsed.items ?? []) : parsed.text ? [parsed.text] : [];
 
   if (chips.length === 0) return <span className="text-gray-400">-</span>;

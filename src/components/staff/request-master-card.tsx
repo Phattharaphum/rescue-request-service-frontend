@@ -47,7 +47,14 @@ export function RequestMasterCard({ master }: RequestMasterCardProps) {
           <InfoItem
             icon={<Tag size={16} className="text-gray-400" />}
             label="เหตุการณ์ภัยพิบัติ"
-            value={<span className="font-medium text-gray-900">{master.incidentId}</span>}
+            value={
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                  {master.incidentId}
+                </span>
+                <CopyButton text={master.incidentId} />
+              </div>
+            }
           />
           <InfoItem
             label="ประเภทความช่วยเหลือ"

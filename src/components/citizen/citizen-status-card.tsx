@@ -9,17 +9,20 @@ import {
   Truck,
   FileText,
   AlertCircle,
-  MapPin,
+  CheckCircle2,
+  XCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { InfoItem } from '@/components/shared/info-item';
 import { LocationSummary } from '@/components/citizen/location-summary';
-import { CitizenStatusResponse } from '@/types/rescue';
+import { CitizenStatusResponse, RequestStatus } from '@/types/rescue';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils/date';
-import { formatRequestType, formatPriorityLevel } from '@/lib/utils/format';
+import { formatRequestType, formatPriorityLevel, formatStatus } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
+import { cn } from '@/lib/utils/cn';
 
 const PRIORITY_VARIANT_MAP = {
   LOW: 'gray',
@@ -27,6 +30,87 @@ const PRIORITY_VARIANT_MAP = {
   HIGH: 'amber',
   CRITICAL: 'red',
 } as const;
+
+interface StatusPresentation {
+  icon: LucideIcon;
+  frameClass: string;
+  stripeClass: string;
+  iconWrapClass: string;
+  iconClass: string;
+  headlineClass: string;
+  messageClass: string;
+  suggestionClass: string;
+  pulseClass: string;
+}
+
+const STATUS_PRESENTATION_MAP: Record<RequestStatus, StatusPresentation> = {
+  SUBMITTED: {
+    icon: FileText,
+    frameClass: 'border-slate-200 bg-gradient-to-br from-slate-50 to-white',
+    stripeClass: 'bg-slate-500',
+    iconWrapClass: 'bg-slate-100 border border-slate-200',
+    iconClass: 'text-slate-700',
+    headlineClass: 'text-slate-900',
+    messageClass: 'border-slate-200 bg-white text-slate-800',
+    suggestionClass: 'border-slate-200 bg-slate-50 text-slate-700',
+    pulseClass: 'bg-slate-300/70',
+  },
+  TRIAGED: {
+    icon: AlertCircle,
+    frameClass: 'border-amber-200 bg-gradient-to-br from-amber-50 to-white',
+    stripeClass: 'bg-amber-500',
+    iconWrapClass: 'bg-amber-100 border border-amber-200',
+    iconClass: 'text-amber-700',
+    headlineClass: 'text-amber-900',
+    messageClass: 'border-amber-200 bg-white text-amber-900',
+    suggestionClass: 'border-amber-200 bg-amber-50 text-amber-800',
+    pulseClass: 'bg-amber-300/70',
+  },
+  ASSIGNED: {
+    icon: Truck,
+    frameClass: 'border-sky-200 bg-gradient-to-br from-sky-50 to-white',
+    stripeClass: 'bg-sky-500',
+    iconWrapClass: 'bg-sky-100 border border-sky-200',
+    iconClass: 'text-sky-700',
+    headlineClass: 'text-sky-900',
+    messageClass: 'border-sky-200 bg-white text-sky-900',
+    suggestionClass: 'border-sky-200 bg-sky-50 text-sky-800',
+    pulseClass: 'bg-sky-300/70',
+  },
+  IN_PROGRESS: {
+    icon: Clock,
+    frameClass: 'border-indigo-200 bg-gradient-to-br from-indigo-50 to-white',
+    stripeClass: 'bg-indigo-500',
+    iconWrapClass: 'bg-indigo-100 border border-indigo-200',
+    iconClass: 'text-indigo-700',
+    headlineClass: 'text-indigo-900',
+    messageClass: 'border-indigo-200 bg-white text-indigo-900',
+    suggestionClass: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+    pulseClass: 'bg-indigo-300/70',
+  },
+  RESOLVED: {
+    icon: CheckCircle2,
+    frameClass: 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white',
+    stripeClass: 'bg-emerald-500',
+    iconWrapClass: 'bg-emerald-100 border border-emerald-200',
+    iconClass: 'text-emerald-700',
+    headlineClass: 'text-emerald-900',
+    messageClass: 'border-emerald-200 bg-white text-emerald-900',
+    suggestionClass: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    pulseClass: 'bg-emerald-300/70',
+  },
+  CANCELLED: {
+    icon: XCircle,
+    frameClass: 'border-rose-200 bg-gradient-to-br from-rose-50 to-white',
+    stripeClass: 'bg-rose-500',
+    iconWrapClass: 'bg-rose-100 border border-rose-200',
+    iconClass: 'text-rose-700',
+    headlineClass: 'text-rose-900',
+    messageClass: 'border-rose-200 bg-white text-rose-900',
+    suggestionClass: 'border-rose-200 bg-rose-50 text-rose-800',
+    pulseClass: 'bg-rose-300/70',
+  },
+};
 
 interface CitizenStatusCardProps {
   data: CitizenStatusResponse;
@@ -40,20 +124,67 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
       : parsedSpecialNeeds.text
         ? [parsedSpecialNeeds.text]
         : [];
+  const statusPresentation = STATUS_PRESENTATION_MAP[data.status];
+  const StatusIcon = statusPresentation.icon;
+  const isActiveStatus = data.status !== 'RESOLVED' && data.status !== 'CANCELLED';
+  const headline = data.statusMessage?.trim() || formatStatus(data.status);
 
   return (
     <div className="space-y-6">
       {/* Status Overview */}
-      <Card className="border-blue-100 bg-white shadow-sm overflow-hidden">
-        <div className="bg-blue-600 h-2 w-full"></div>
+      <Card className={cn('overflow-hidden shadow-sm', statusPresentation.frameClass)}>
+        <div className={cn('h-1.5 w-full', statusPresentation.stripeClass)}></div>
         <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center gap-4">
-            <StatusBadge status={data.status} size="md" dot />
-            <p className="text-lg text-gray-900 font-bold">{data.statusMessage}</p>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-sm', statusPresentation.iconWrapClass)}>
+                  {isActiveStatus && (
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'absolute inset-0 rounded-2xl animate-pulse opacity-60',
+                        statusPresentation.pulseClass,
+                      )}
+                    />
+                  )}
+                  <StatusIcon size={28} className={cn('relative z-10', statusPresentation.iconClass)} />
+                </div>
+
+                <div className="space-y-2">
+                  <StatusBadge status={data.status} size="md" dot />
+                  <p className={cn('text-xl font-bold leading-snug', statusPresentation.headlineClass)}>
+                    {headline}
+                  </p>
+                </div>
+              </div>
+
+              {data.lastUpdatedAt && (
+                <span
+                  title={formatDateTime(data.lastUpdatedAt)}
+                  className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm border border-gray-100"
+                >
+                  {formatRelativeTime(data.lastUpdatedAt)}
+                </span>
+              )}
+            </div>
+
+            <div className={cn('rounded-xl border px-4 py-3 text-sm font-medium shadow-sm', statusPresentation.messageClass)}>
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <p className="leading-relaxed">{headline}</p>
+              </div>
+            </div>
+
             {data.nextSuggestedAction && (
-              <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3.5 max-w-md w-full text-left shadow-sm mt-2">
-                <AlertCircle size={20} className="shrink-0 mt-0.5 text-blue-600" />
-                <p className="text-sm font-medium text-blue-900 leading-relaxed">{data.nextSuggestedAction}</p>
+              <div
+                className={cn(
+                  'flex items-start gap-3 rounded-xl border px-4 py-3.5 text-left shadow-sm',
+                  statusPresentation.suggestionClass,
+                )}
+              >
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <p className="text-sm font-medium leading-relaxed">{data.nextSuggestedAction}</p>
               </div>
             )}
           </div>

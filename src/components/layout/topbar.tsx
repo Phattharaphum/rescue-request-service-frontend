@@ -28,6 +28,18 @@ const ADMIN_NAV_LINKS: NavLink[] = [
   { label: 'เหตุการณ์ (Pub/Sub)', href: '/admin/pubsub' },
 ];
 
+function isNavLinkActive(pathname: string, href: string): boolean {
+  if (pathname === href || pathname.startsWith(`${href}/`)) {
+    return true;
+  }
+
+  if (href === '/citizen/track') {
+    return pathname === '/citizen/status' || pathname.startsWith('/citizen/status/');
+  }
+
+  return false;
+}
+
 export function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -102,7 +114,7 @@ export function Topbar() {
 
         <nav className="hidden items-center gap-2 sm:flex">
           {navLinks.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active = isNavLinkActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
@@ -142,7 +154,7 @@ export function Topbar() {
       {mobileOpen && (
         <nav className="flex flex-col gap-1 border-t border-gray-100 bg-white px-4 pb-4 pt-2 shadow-lg sm:hidden absolute w-full">
           {navLinks.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active = isNavLinkActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
