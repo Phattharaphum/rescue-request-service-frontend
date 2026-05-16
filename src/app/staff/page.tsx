@@ -10,10 +10,10 @@ import { PageHeader } from '@/components/layout/page-header';
 import { IncidentSelector } from '@/components/shared/incident-selector';
 import { RequestsTable } from '@/components/staff/requests-table';
 import { Button } from '@/components/ui/button';
-import { useIncident } from '@/lib/hooks/use-incident';
+import { ALL_INCIDENTS_VALUE, useIncident } from '@/lib/hooks/use-incident';
 import { listIncidentRequests } from '@/lib/api/rescue';
 import { formatStatus } from '@/lib/utils/format';
-import type { RequestStatus } from '@/types/rescue';
+import type { IncidentRequestSummary, RequestStatus } from '@/types/rescue';
 
 const STATUS_OPTIONS: RequestStatus[] = [
   'SUBMITTED',
@@ -31,14 +31,43 @@ export default function StaffDashboardPage() {
   const [prevCursors, setPrevCursors] = useState<string[]>([]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['incident-requests-page', incidentId, statusFilter, cursor],
-    queryFn: () =>
-      listIncidentRequests(incidentId, {
-        status: (statusFilter as RequestStatus) || undefined,
+    queryKey: [
+      'incident-requests-page',
+      incidentId,
+      incidents.map((incident) => incident.value).join(','),
+      statusFilter,
+      cursor,
+    ],
+    queryFn: async () => {
+      const status = (statusFilter as RequestStatus) || undefined;
+
+      if (incidentId === ALL_INCIDENTS_VALUE) {
+        const responses = await Promise.all(
+          incidents.map((incident) =>
+            listIncidentRequests(incident.value, {
+              status,
+              limit: 100,
+            }),
+          ),
+        );
+
+        const allItems = responses
+          .flatMap((response) => response.items)
+          .sort(
+            (a: IncidentRequestSummary, b: IncidentRequestSummary) =>
+              new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
+          );
+
+        return { items: allItems };
+      }
+
+      return listIncidentRequests(incidentId, {
+        status,
         cursor,
         limit: 20,
-      }),
-    enabled: !!incidentId,
+      });
+    },
+    enabled: !!incidentId && (incidentId !== ALL_INCIDENTS_VALUE || incidents.length > 0),
   });
 
   const items = data?.items ?? [];
@@ -98,6 +127,8 @@ export default function StaffDashboardPage() {
                 onChange={onChangeIncident}
                 incidents={incidents}
                 isLoading={isLoadingIncidents}
+                allowAll
+                allLabel="All - ทุกเหตุการณ์ภัยพิบัติ"
               />
             </div>
             
@@ -137,7 +168,7 @@ export default function StaffDashboardPage() {
 
         {/* Data Table */}
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <RequestsTable items={items} isLoading={isLoading} />
+          <RequestsTable items={items} isLoading={isLoadingIncidents || isLoading} />
         </div>
 
         {/* Pagination */}
@@ -145,7 +176,7 @@ export default function StaffDashboardPage() {
           <Button
             variant="outline"
             size="sm"
-            disabled={isLoading || prevCursors.length === 0}
+            disabled={isLoadingIncidents || isLoading || prevCursors.length === 0}
             onClick={onPrev}
             leftIcon={<ChevronLeft size={16} />}
             className="rounded-xl border-gray-300 hover:bg-gray-50"
@@ -154,13 +185,17 @@ export default function StaffDashboardPage() {
           </Button>
           
           <div className="text-sm font-medium text-gray-500">
-            {isLoading ? 'กำลังโหลด...' : `รายการที่ ${(prevCursors.length * 20) + 1} - ${(prevCursors.length * 20) + items.length}`}
+            {isLoadingIncidents || isLoading
+              ? 'กำลังโหลด...'
+              : incidentId === ALL_INCIDENTS_VALUE
+                ? `ทั้งหมด ${items.length} รายการ`
+                : `รายการที่ ${(prevCursors.length * 20) + 1} - ${(prevCursors.length * 20) + items.length}`}
           </div>
 
           <Button
             variant="outline"
             size="sm"
-            disabled={isLoading || !nextCursor}
+            disabled={isLoadingIncidents || isLoading || incidentId === ALL_INCIDENTS_VALUE || !nextCursor}
             onClick={onNext}
             rightIcon={<ChevronRight size={16} />}
             className="rounded-xl border-gray-300 hover:bg-gray-50"

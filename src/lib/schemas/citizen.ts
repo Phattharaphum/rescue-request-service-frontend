@@ -1,13 +1,8 @@
 // src\lib\schemas\citizen.ts
 import { z } from 'zod';
 import { phoneSchema } from '@/lib/schemas/common';
+import { REQUEST_TYPE_VALUES } from '@/lib/config/request-types';
 
-const REQUEST_TYPES = [
-  'EVACUATION',
-  'SUPPLY',
-  'MEDICAL',
-  'OTHER',
-] as const;
 const SOURCE_CHANNELS = ['WEB'] as const;
 const UPDATE_TYPES = [
   'NOTE',
@@ -19,7 +14,7 @@ const UPDATE_TYPES = [
 
 export const rescueRequestSchema = z.object({
   incidentId: z.string().min(1, 'กรุณาเลือกเหตุการณ์'),
-  requestType: z.enum(REQUEST_TYPES, { error: 'กรุณาเลือกประเภทคำขอ' }),
+  requestType: z.enum(REQUEST_TYPE_VALUES, { error: 'กรุณาเลือกประเภทคำขอ' }),
   description: z.string().min(1, 'กรุณาอธิบายสถานการณ์').max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
   peopleCount: z.coerce
     .number()

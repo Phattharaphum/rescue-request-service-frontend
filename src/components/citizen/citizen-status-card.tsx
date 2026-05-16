@@ -11,6 +11,10 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
+  HeartPulse,
+  PackageOpen,
+  Route,
+  MapPinned,
   type LucideIcon,
 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -23,6 +27,8 @@ import { formatDateTime, formatRelativeTime } from '@/lib/utils/date';
 import { formatRequestType, formatPriorityLevel, formatStatus } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 import { cn } from '@/lib/utils/cn';
+import { CopyButton } from '@/components/shared/copy-button';
+import { isSupportedRequestType, type SupportedRequestType } from '@/lib/config/request-types';
 
 const PRIORITY_VARIANT_MAP = {
   LOW: 'gray',
@@ -114,9 +120,31 @@ const STATUS_PRESENTATION_MAP: Record<RequestStatus, StatusPresentation> = {
 
 interface CitizenStatusCardProps {
   data: CitizenStatusResponse;
+  incidentDescription?: string;
 }
 
-export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
+const REQUEST_TYPE_PRESENTATION: Record<
+  SupportedRequestType,
+  { icon: LucideIcon; className: string; iconClassName: string }
+> = {
+  MEDICAL: {
+    icon: HeartPulse,
+    className: 'border-rose-200 bg-rose-50 text-rose-800',
+    iconClassName: 'bg-rose-600 text-white',
+  },
+  EVACUATION: {
+    icon: Route,
+    className: 'border-amber-200 bg-amber-50 text-amber-800',
+    iconClassName: 'bg-amber-600 text-white',
+  },
+  SUPPLY: {
+    icon: PackageOpen,
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    iconClassName: 'bg-emerald-600 text-white',
+  },
+};
+
+export function CitizenStatusCard({ data, incidentDescription }: CitizenStatusCardProps) {
   const parsedSpecialNeeds = parseSpecialNeeds(data.specialNeeds);
   const specialNeedChips =
     parsedSpecialNeeds.mode === 'chip'
@@ -128,6 +156,10 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
   const StatusIcon = statusPresentation.icon;
   const isActiveStatus = data.status !== 'RESOLVED' && data.status !== 'CANCELLED';
   const headline = data.statusMessage?.trim() || formatStatus(data.status);
+  const requestTypePresentation = isSupportedRequestType(data.requestType)
+    ? REQUEST_TYPE_PRESENTATION[data.requestType]
+    : undefined;
+  const RequestTypeIcon = requestTypePresentation?.icon ?? FileText;
 
   return (
     <div className="space-y-6">
@@ -192,18 +224,66 @@ export function CitizenStatusCard({ data }: CitizenStatusCardProps) {
       </Card>
 
       {/* Request Info */}
-      <Card>
-        <CardHeader title="รายละเอียดคำขอ" />
+      <Card className="overflow-hidden border-slate-200 shadow-sm">
+        <div className="h-1.5 w-full bg-blue-600" />
+        <CardHeader title="รายละเอียดคำขอ" className="bg-white" />
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
             <InfoItem
               icon={<FileText size={16} className="text-gray-400" />}
               label="รหัสคำขออ้างอิง"
-              value={<span className="font-mono text-sm font-medium text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{data.requestId}</span>}
+              value={
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-sm font-semibold text-gray-900">
+                    {data.requestId}
+                  </span>
+                  <CopyButton text={data.requestId} />
+                </div>
+              }
             />
             <InfoItem
+              icon={<MapPinned size={16} className="text-gray-400" />}
+              label="รหัสเหตุการณ์ภัยพิบัติ"
+              value={
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-sm font-semibold text-gray-900">
+                    {data.incidentId}
+                  </span>
+                  <CopyButton text={data.incidentId} />
+                </div>
+              }
+            />
+            <div className="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+              <InfoItem
+                icon={<MapPinned size={16} className="text-blue-500" />}
+                label="เหตุการณ์ภัยพิบัติ"
+                value={
+                  <span className="text-sm font-semibold leading-6 text-blue-950">
+                    {incidentDescription || data.incidentId}
+                  </span>
+                }
+              />
+            </div>
+            <InfoItem
               label="ประเภทความช่วยเหลือ"
-              value={<span className="font-semibold text-gray-900">{formatRequestType(data.requestType)}</span>}
+              value={
+                <div
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-2xl border px-3 py-2',
+                    requestTypePresentation?.className ?? 'border-gray-200 bg-gray-50 text-gray-800',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-xl',
+                      requestTypePresentation?.iconClassName ?? 'bg-gray-700 text-white',
+                    )}
+                  >
+                    <RequestTypeIcon size={18} />
+                  </span>
+                  <span className="text-sm font-black">{formatRequestType(data.requestType)}</span>
+                </div>
+              }
             />
             <div className="sm:col-span-2 bg-gray-50 rounded-xl p-4 border border-gray-100">
               <InfoItem

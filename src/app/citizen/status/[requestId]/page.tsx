@@ -20,6 +20,7 @@ import { formatStatus, formatUpdateType } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
 import { CitizenUpdateItem, StatusEvent } from '@/types/rescue';
 import { cn } from '@/lib/utils/cn';
+import { useIncidents } from '@/lib/hooks/use-incidents';
 
 interface PageProps {
   params: Promise<{ requestId: string }>;
@@ -272,10 +273,14 @@ export default function CitizenStatusPage({ params }: PageProps) {
   });
 
   const updateItems = detailData?.updateItems ?? detailData?.citizenUpdates ?? [];
+  const { incidents } = useIncidents();
+  const incidentDescription = data
+    ? incidents.find((incident) => incident.value === data.incidentId)?.description
+    : undefined;
 
   return (
     <AppShell variant="citizen">
-      <div className="mx-auto max-w-2xl space-y-6 py-6">
+      <div className="mx-auto max-w-4xl space-y-6 py-6">
         <PageHeader
           title="สถานะคำขอช่วยเหลือ"
           breadcrumbs={[
@@ -295,7 +300,7 @@ export default function CitizenStatusPage({ params }: PageProps) {
         
         {data && (
           <div className="space-y-6">
-            <CitizenStatusCard data={data} />
+            <CitizenStatusCard data={data} incidentDescription={incidentDescription} />
             <EventTimeline events={data.recentEvents ?? []} />
           </div>
         )}

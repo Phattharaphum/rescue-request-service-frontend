@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShieldAlert, Menu, X, LogOut } from 'lucide-react';
+import { Cross, LifeBuoy, Menu, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 const TEXT = {
@@ -104,8 +104,11 @@ export function Topbar() {
           aria-label={`${TEXT.appName} - หน้าหลัก`}
           className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
         >
-          <div className="rounded-lg bg-blue-600 p-1.5 text-white">
-            <ShieldAlert size={20} />
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/20">
+            <LifeBuoy size={24} strokeWidth={2.2} />
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-white">
+              <Cross size={11} strokeWidth={3} />
+            </span>
           </div>
           <span className="text-base font-bold text-gray-900 sm:text-lg tracking-tight">
             {TEXT.appName}

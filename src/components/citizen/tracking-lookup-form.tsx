@@ -72,18 +72,19 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
   };
 
   return (
-    <Card className="border-gray-200">
+    <Card className="overflow-hidden border-gray-200 shadow-sm">
+      <div className="h-1.5 w-full bg-blue-600" />
       <CardHeader title="ค้นหาข้อมูลของคุณ" className="bg-white pb-2" />
       <CardContent className="pt-2">
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
           {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4">
+          <div className="space-y-3 rounded-3xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5 shadow-sm">
             <Input
               label="เบอร์โทรศัพท์ที่ใช้แจ้งคำขอ"
               required
               type="tel"
               placeholder="เช่น 0812345678"
-              className="font-mono text-center text-2xl font-semibold tracking-[0.16em] placeholder:tracking-normal"
+              className="h-16 rounded-2xl font-mono text-center text-3xl font-black tracking-[0.18em] text-slate-950 placeholder:text-xl placeholder:font-semibold placeholder:tracking-normal sm:h-20 sm:text-4xl"
               inputMode="numeric"
               autoComplete="tel"
               maxLength={10}
@@ -103,12 +104,12 @@ export function TrackingLookupForm({ onSuccess }: TrackingLookupFormProps) {
             />
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50/70 to-white p-4">
+          <div className="space-y-3 rounded-3xl border border-blue-100 bg-gradient-to-b from-blue-50/80 to-white p-5 shadow-sm">
             <Input
               label="รหัสติดตาม (Tracking Code)"
               required
               placeholder="เช่น 123456"
-              className="font-mono text-center text-2xl font-semibold tracking-[0.28em] placeholder:tracking-normal"
+              className="h-16 rounded-2xl font-mono text-center text-4xl font-black tracking-[0.34em] text-blue-950 placeholder:text-xl placeholder:font-semibold placeholder:tracking-normal sm:h-20 sm:text-5xl"
               inputMode="numeric"
               autoComplete="one-time-code"
               maxLength={6}

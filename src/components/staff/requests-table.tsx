@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ExternalLink, Users } from 'lucide-react';
+import { ExternalLink, Loader2, Radio, Users } from 'lucide-react';
 import {
   Table,
   TableHeader,
@@ -30,41 +30,28 @@ interface RequestsTableProps {
   isLoading: boolean;
 }
 
-function RequestsTableSkeleton() {
+function RequestsTableLoading() {
   return (
-    <div className="w-full overflow-x-auto">
-      <Table>
-        <TableHeader className="bg-gray-50/50">
-          <TableRow>
-            <TableHead>รหัสคำขออ้างอิง</TableHead>
-            <TableHead>ประเภทความช่วยเหลือ</TableHead>
-            <TableHead>สถานะล่าสุด</TableHead>
-            <TableHead>ชื่อผู้ติดต่อ</TableHead>
-            <TableHead align="center">ผู้ประสบภัย</TableHead>
-            <TableHead>ความเร่งด่วน</TableHead>
-            <TableHead>หน่วยปฏิบัติการ</TableHead>
-            <TableHead>เวลาที่แจ้งคำขอ</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 10 }).map((_, idx) => (
-            <TableRow key={`skeleton-${idx}`}>
-              {Array.from({ length: 8 }).map((__, colIdx) => (
-                <TableCell key={`skeleton-${idx}-${colIdx}`}>
-                  <div className="h-5 w-full animate-pulse rounded-md bg-gray-100" />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="flex min-h-80 flex-col items-center justify-center gap-5 bg-gradient-to-b from-white to-blue-50/40 p-10">
+      <div className="relative flex h-20 w-20 items-center justify-center">
+        <span className="absolute h-20 w-20 rounded-full bg-blue-200/60 animate-ping" />
+        <span className="absolute h-14 w-14 rounded-full bg-blue-100" />
+        <Loader2 size={34} className="relative animate-spin text-blue-700" />
+        <Radio size={18} className="absolute bottom-2 right-2 text-blue-500" />
+      </div>
+      <div className="text-center">
+        <p className="text-base font-black text-gray-950">กำลังโหลดรายการคำขอ</p>
+        <p className="mt-1 text-sm font-medium text-gray-500">
+          กำลังดึงข้อมูลจากเหตุการณ์ภัยพิบัติที่เลือก
+        </p>
+      </div>
     </div>
   );
 }
 
 export function RequestsTable({ items, isLoading }: RequestsTableProps) {
   if (isLoading) {
-    return <RequestsTableSkeleton />;
+    return <RequestsTableLoading />;
   }
 
   if (items.length === 0) {

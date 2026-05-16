@@ -12,6 +12,8 @@ interface IncidentSelectorProps {
   className?: string;
   disabled?: boolean;
   isLoading?: boolean;
+  allowAll?: boolean;
+  allLabel?: string;
 }
 
 export function IncidentSelector({
@@ -21,8 +23,10 @@ export function IncidentSelector({
   className,
   disabled,
   isLoading,
+  allowAll = false,
+  allLabel = 'ทุกเหตุการณ์ภัยพิบัติ',
 }: IncidentSelectorProps) {
-  const isDisabled = disabled || isLoading || incidents.length === 0;
+  const isDisabled = disabled || isLoading || (!allowAll && incidents.length === 0);
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -42,7 +46,8 @@ export function IncidentSelector({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {incidents.length === 0 ? (
+          {allowAll && <option value="__all__">{allLabel}</option>}
+          {incidents.length === 0 && !allowAll ? (
             <option value="">
               {isLoading ? 'กำลังโหลดรายการเหตุการณ์...' : 'ไม่พบรายการเหตุการณ์'}
             </option>

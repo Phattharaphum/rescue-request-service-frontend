@@ -6,6 +6,7 @@ import {
   UpdateType,
   PriorityLevel,
 } from '@/types/rescue';
+import { getRequestTypeLabel } from '@/lib/config/request-types';
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
   SUBMITTED: 'รับคำขอแล้ว',
@@ -23,7 +24,7 @@ const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   LANDSLIDE: 'ดินถล่ม',
   STORM: 'พายุ',
   MEDICAL: 'การแพทย์ / ยา / ผู้ป่วยฉุกเฉิน',
-  EVACUATION: 'อพยพออกจากพื้นที่',
+  EVACUATION: 'อพยพออกจากพื้นที่ / ช่วยเหลือฉุกเฉิน / ติดค้าง',
   SUPPLY: 'อาหาร / น้ำดื่ม / เสบียง',
   OTHER: 'เครื่องใช้จำเป็น',
 };
@@ -57,7 +58,7 @@ export function formatStatus(status: RequestStatus): string {
 }
 
 export function formatRequestType(type: RequestType): string {
-  return REQUEST_TYPE_LABELS[type] ?? type;
+  return REQUEST_TYPE_LABELS[type] ?? getRequestTypeLabel(type);
 }
 
 export function formatSourceChannel(channel: SourceChannel): string {

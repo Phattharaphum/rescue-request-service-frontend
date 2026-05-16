@@ -13,6 +13,7 @@ if (process.env.NODE_ENV === 'production' && usesRelativeApiBase && !apiProxyTar
 }
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['192.168.1.38'],
   async rewrites() {
     if (!apiProxyTarget) return [];
     return [

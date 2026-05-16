@@ -17,14 +17,13 @@ function toIncident(item: IncidentApiItem): Incident | null {
   const description =
     typeof item.incidentDescription === 'string' ? item.incidentDescription.trim() : '';
 
-  if (!value || !name) {
+  if (!value || (!description && !name)) {
     return null;
   }
 
-  const shortDescription = description ? `${description.slice(0, 10)}..` : '';
-  const label = shortDescription ? `${name} - ${shortDescription}` : name;
+  const label = description || name;
 
-  return { value, label };
+  return { value, label, description: label };
 }
 
 export async function listIncidents(options?: {

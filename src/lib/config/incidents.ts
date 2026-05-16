@@ -2,4 +2,5 @@
 export interface Incident {
   value: string;
   label: string;
+  description: string;
 }
