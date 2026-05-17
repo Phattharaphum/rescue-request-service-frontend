@@ -1,11 +1,9 @@
-// src/components/staff/current-state-card.tsx
 'use client';
 
-import { Hash, Tag, Shield, Truck, Clock, User, FileText, Star } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import type React from 'react';
+import { Clock, FileText, Shield, Star, Truck, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { InfoItem } from '@/components/shared/info-item';
 import { CurrentStateSnapshot, PriorityLevel } from '@/types/rescue';
 import { formatPriorityLevel } from '@/lib/utils/format';
 import { formatDateTime } from '@/lib/utils/date';
@@ -21,89 +19,91 @@ interface CurrentStateCardProps {
   state: CurrentStateSnapshot;
 }
 
+function InfoBlock({
+  icon,
+  label,
+  children,
+  className = '',
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white p-4 ${className}`}>
+      <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-bold leading-6 text-slate-950">{children}</div>
+    </div>
+  );
+}
+
 export function CurrentStateCard({ state }: CurrentStateCardProps) {
   return (
-    <Card className="border-blue-100 overflow-hidden shadow-sm">
-      <div className="bg-blue-600 h-1.5 w-full"></div>
-      <CardHeader title="สถานะคำขอปัจจุบัน (Current State)" className="bg-blue-50/30 pb-4" />
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
-          <InfoItem
-            label="สถานะ"
-            value={<StatusBadge status={state.status} size="md" dot />}
-          />
-          <InfoItem
-            label="รอบการประเมิน (Version)"
-            value={<span className="font-mono font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">v{state.stateVersion}</span>}
-          />
-          
-          <div className="sm:col-span-2 h-px bg-gray-100 my-1"></div>
+    <section className="overflow-hidden rounded-[28px] border border-blue-200 bg-blue-50">
+      <div className="h-3 w-full bg-blue-500" />
+      <div className="p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-blue-700">Current state</p>
+            <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">
+              สถานะคำขอปัจจุบัน
+            </h2>
+          </div>
+          <StatusBadge status={state.status} size="md" dot />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <InfoBlock label="สถานะ">
+            <StatusBadge status={state.status} size="md" dot />
+          </InfoBlock>
+          <InfoBlock label="รอบการประเมิน">
+            <span className="rounded-xl bg-slate-100 px-3 py-1.5 font-mono">v{state.stateVersion}</span>
+          </InfoBlock>
 
           {state.priorityLevel && (
-            <InfoItem
-              icon={<Shield size={16} className="text-gray-400" />}
-              label="ระดับความเร่งด่วน"
-              value={
-                <Badge variant={PRIORITY_VARIANT_MAP[state.priorityLevel]} size="sm">
-                  {formatPriorityLevel(state.priorityLevel)}
-                </Badge>
-              }
-            />
+            <InfoBlock icon={<Shield size={14} />} label="ระดับความเร่งด่วน">
+              <Badge variant={PRIORITY_VARIANT_MAP[state.priorityLevel]} size="sm">
+                {formatPriorityLevel(state.priorityLevel)}
+              </Badge>
+            </InfoBlock>
           )}
           {state.priorityScore !== undefined && (
-            <InfoItem
-              icon={<Star size={16} className="text-gray-400" />}
-              label="คะแนนความเร่งด่วน"
-              value={<span className="font-bold text-gray-900">{String(state.priorityScore)}</span>}
-            />
+            <InfoBlock icon={<Star size={14} />} label="คะแนนความเร่งด่วน">
+              {String(state.priorityScore)}
+            </InfoBlock>
           )}
-          
+
           {state.assignedUnitId && (
-            <div className="sm:col-span-2 bg-green-50 rounded-xl p-4 border border-green-100 flex flex-col sm:flex-row sm:items-center gap-4">
-              <InfoItem
-                icon={<Truck size={16} className="text-green-600" />}
-                label="ทีมปฏิบัติการที่รับผิดชอบ"
-                value={<span className="font-bold text-green-800">{state.assignedUnitId}</span>}
-              />
+            <InfoBlock icon={<Truck size={14} />} label="ทีมปฏิบัติการที่รับผิดชอบ" className="sm:col-span-2">
+              {state.assignedUnitId}
               {state.assignedAt && (
-                <div className="hidden sm:block w-px h-8 bg-green-200"></div>
+                <span className="mt-1 block text-xs text-slate-500">
+                  มอบหมายเมื่อ {formatDateTime(state.assignedAt)}
+                </span>
               )}
-              {state.assignedAt && (
-                <InfoItem
-                  icon={<Clock size={16} className="text-green-600" />}
-                  label="มอบหมายงานเมื่อ"
-                  value={<span className="text-green-800 font-medium">{formatDateTime(state.assignedAt)}</span>}
-                />
-              )}
-            </div>
+            </InfoBlock>
           )}
 
           {state.latestNote && (
-            <div className="sm:col-span-2 bg-amber-50/50 rounded-xl p-4 border border-amber-100">
-              <InfoItem
-                icon={<FileText size={16} className="text-amber-500" />}
-                label="บันทึกหมายเหตุล่าสุด"
-                value={<span className="text-amber-900 font-medium leading-relaxed">{state.latestNote}</span>}
-              />
-            </div>
+            <InfoBlock icon={<FileText size={14} />} label="บันทึกหมายเหตุล่าสุด" className="sm:col-span-2">
+              {state.latestNote}
+            </InfoBlock>
           )}
-
-          <div className="sm:col-span-2 h-px bg-gray-100 my-1"></div>
 
           {state.lastUpdatedBy && (
-            <InfoItem
-              icon={<User size={16} className="text-gray-400" />}
-              label="ผู้ทำรายการล่าสุด"
-              value={<span className="font-medium text-gray-900">{state.lastUpdatedBy}</span>}
-            />
+            <InfoBlock icon={<User size={14} />} label="ผู้ทำรายการล่าสุด">
+              {state.lastUpdatedBy}
+            </InfoBlock>
           )}
-          <InfoItem
-            icon={<Clock size={16} className="text-gray-400" />}
-            label="ระบบอัปเดตล่าสุด"
-            value={formatDateTime(state.lastUpdatedAt)}
-          />
+          <InfoBlock icon={<Clock size={14} />} label="ระบบอัปเดตล่าสุด">
+            {formatDateTime(state.lastUpdatedAt)}
+          </InfoBlock>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

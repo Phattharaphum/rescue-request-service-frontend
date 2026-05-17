@@ -1,10 +1,10 @@
-// src\components\citizen\special-needs-input.tsx
+// src/components/citizen/special-needs-input.tsx
 'use client';
 
 import { useMemo, useState } from 'react';
-import { cn } from '@/lib/utils/cn';
-import { parseSpecialNeeds, serializeSpecialNeeds } from '@/lib/utils/special-needs';
 import { SPECIAL_NEEDS_CHIPS } from '@/lib/config/special-needs';
+import { parseSpecialNeeds, serializeSpecialNeeds } from '@/lib/utils/special-needs';
+import { cn } from '@/lib/utils/cn';
 
 interface SpecialNeedsInputProps {
   value?: string;
@@ -18,35 +18,30 @@ export function SpecialNeedsInput({ value, onChange }: SpecialNeedsInputProps) {
 
   const toggleChip = (chip: string) => {
     const next = selectedChips.includes(chip)
-      ? selectedChips.filter((c) => c !== chip)
+      ? selectedChips.filter((item) => item !== chip)
       : [...selectedChips, chip];
 
     setSelectedChips(next);
-
-    if (next.length === 0) {
-      onChange('');
-      return;
-    }
-
-    onChange(serializeSpecialNeeds({ mode: 'chip', items: next }));
+    onChange(next.length === 0 ? '' : serializeSpecialNeeds({ mode: 'chip', items: next }));
   };
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-600">เลือกได้หลายรายการ</p>
+      <p className="text-sm font-semibold text-slate-500">เลือกได้หลายรายการ</p>
       <div className="flex flex-wrap gap-2">
         {SPECIAL_NEEDS_CHIPS.map((chip) => {
           const selected = selectedChips.includes(chip);
+
           return (
             <button
               key={chip}
               type="button"
               onClick={() => toggleChip(chip)}
               className={cn(
-                'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                'rounded-full border px-3 py-1.5 text-sm font-bold transition-colors',
                 selected
-                  ? 'border-teal-600 bg-teal-600 text-white'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-teal-400 hover:text-teal-700',
+                  ? 'border-cyan-500 bg-cyan-300 text-slate-950'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50',
               )}
             >
               {chip}
@@ -56,7 +51,7 @@ export function SpecialNeedsInput({ value, onChange }: SpecialNeedsInputProps) {
       </div>
 
       {selectedChips.length > 0 && (
-        <p className="text-xs text-gray-500">เลือกแล้ว: {selectedChips.join(', ')}</p>
+        <p className="text-xs font-semibold text-slate-500">เลือกแล้ว: {selectedChips.join(', ')}</p>
       )}
     </div>
   );

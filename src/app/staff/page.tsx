@@ -4,16 +4,21 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, ChevronLeft, ChevronRight, RefreshCw, Filter } from 'lucide-react';
+import {
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Filter,
+  RefreshCw,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
-import { PageHeader } from '@/components/layout/page-header';
 import { IncidentSelector } from '@/components/shared/incident-selector';
 import { RequestsTable } from '@/components/staff/requests-table';
-import { Button } from '@/components/ui/button';
-import { ALL_INCIDENTS_VALUE, useIncident } from '@/lib/hooks/use-incident';
+import { useIncident } from '@/lib/hooks/use-incident';
 import { listIncidentRequests } from '@/lib/api/rescue';
 import { formatStatus } from '@/lib/utils/format';
-import type { IncidentRequestSummary, RequestStatus } from '@/types/rescue';
+import type { RequestStatus } from '@/types/rescue';
 
 const STATUS_OPTIONS: RequestStatus[] = [
   'SUBMITTED',
@@ -30,7 +35,7 @@ export default function StaffDashboardPage() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevCursors, setPrevCursors] = useState<string[]>([]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: [
       'incident-requests-page',
       incidentId,
@@ -41,33 +46,13 @@ export default function StaffDashboardPage() {
     queryFn: async () => {
       const status = (statusFilter as RequestStatus) || undefined;
 
-      if (incidentId === ALL_INCIDENTS_VALUE) {
-        const responses = await Promise.all(
-          incidents.map((incident) =>
-            listIncidentRequests(incident.value, {
-              status,
-              limit: 100,
-            }),
-          ),
-        );
-
-        const allItems = responses
-          .flatMap((response) => response.items)
-          .sort(
-            (a: IncidentRequestSummary, b: IncidentRequestSummary) =>
-              new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
-          );
-
-        return { items: allItems };
-      }
-
       return listIncidentRequests(incidentId, {
         status,
         cursor,
         limit: 20,
       });
     },
-    enabled: !!incidentId && (incidentId !== ALL_INCIDENTS_VALUE || incidents.length > 0),
+    enabled: !!incidentId,
   });
 
   const items = data?.items ?? [];
@@ -93,57 +78,89 @@ export default function StaffDashboardPage() {
 
   const onPrev = () => {
     const prev = prevCursors[prevCursors.length - 1];
-    setPrevCursors((p) => p.slice(0, -1));
+    setPrevCursors((current) => current.slice(0, -1));
     setCursor(prev === '' ? undefined : prev);
   };
 
+  const loading = isLoadingIncidents || isLoading;
+
   return (
     <AppShell variant="staff">
-      <div className="space-y-6">
-        <PageHeader
-          title="แดชบอร์ดจัดการคำขอช่วยเหลือ"
-          actions={
-            <div className="flex flex-wrap items-center gap-3">
-              <Link href="/admin/pubsub">
-                <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50">
-                  <Activity size={16} className="text-blue-600" />
-                  <span className="hidden sm:inline">สตรีมข้อมูล (Pub/Sub)</span>
-                </Button>
-              </Link>
-              <Button variant="primary" size="sm" onClick={() => refetch()} className="shadow-sm">
-                <RefreshCw size={16} />
-                <span className="hidden sm:inline">รีเฟรชข้อมูล</span>
-              </Button>
+      <div className="space-y-5">
+        <section className="overflow-hidden rounded-[30px] border border-slate-200 bg-white">
+          <div className="grid h-3 grid-cols-4">
+            <span className="bg-cyan-300" />
+            <span className="bg-emerald-400" />
+            <span className="bg-amber-300" />
+            <span className="bg-rose-500" />
+          </div>
+          <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-end">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-sm font-black text-cyan-700">
+                <ClipboardList size={16} />
+                Admin incident dashboard
+              </p>
+              <h1 className="mt-5 text-3xl font-black leading-tight tracking-normal text-slate-950 sm:text-5xl">
+                แดชบอร์ดจัดการคำขอช่วยเหลือ
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-500 sm:text-base">
+                คัดกรอง ติดตาม และเปิดรายละเอียดคำขอจากเหตุการณ์ภัยพิบัติที่เลือกในมุมมองเดียว
+              </p>
             </div>
-          }
-        />
 
-        {/* Filters Section */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-5">
-            <div className="w-full sm:w-72">
-              <IncidentSelector
-                value={incidentId}
-                onChange={onChangeIncident}
-                incidents={incidents}
-                isLoading={isLoadingIncidents}
-                allowAll
-                allLabel="All - ทุกเหตุการณ์ภัยพิบัติ"
-              />
+            <div className="grid gap-3">
+              <Link
+                href="/admin/pubsub"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 text-sm font-black text-cyan-700 transition-colors hover:bg-cyan-100"
+              >
+                <Activity size={17} />
+                Pub/Sub stream
+              </Link>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition-colors hover:bg-slate-800 disabled:opacity-60"
+                disabled={isFetching}
+              >
+                <RefreshCw size={17} className={isFetching ? 'animate-spin' : ''} />
+                รีเฟรชข้อมูล
+              </button>
             </div>
-            
-            <div className="flex-1 space-y-2">
-              <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                <Filter size={14} className="text-gray-400" />
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-black text-cyan-700">Filters</p>
+              <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">กรองรายการคำขอ</h2>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+              <Filter size={22} />
+            </div>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-end">
+            <IncidentSelector
+              value={incidentId}
+              onChange={onChangeIncident}
+              incidents={incidents}
+              isLoading={isLoadingIncidents}
+            />
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 text-sm font-black text-slate-700">
+                <Filter size={14} className="text-slate-400" />
                 กรองตามสถานะคำขอ
               </label>
               <div className="flex flex-wrap gap-2">
                 <button
+                  type="button"
                   onClick={() => onChangeStatus('')}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 shadow-sm ${
+                  className={`rounded-2xl border px-4 py-2 text-sm font-black transition-colors ${
                     statusFilter === ''
-                      ? 'bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-1'
-                      : 'border border-gray-200 bg-gray-50 text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                      ? 'border-slate-950 bg-slate-950 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white hover:text-slate-950'
                   }`}
                 >
                   ทั้งหมด
@@ -151,11 +168,12 @@ export default function StaffDashboardPage() {
                 {STATUS_OPTIONS.map((status) => (
                   <button
                     key={status}
+                    type="button"
                     onClick={() => onChangeStatus(status)}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 shadow-sm ${
+                    className={`rounded-2xl border px-4 py-2 text-sm font-black transition-colors ${
                       statusFilter === status
-                        ? 'bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-1'
-                        : 'border border-gray-200 bg-gray-50 text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                        ? 'border-slate-950 bg-slate-950 text-white'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white hover:text-slate-950'
                     }`}
                   >
                     {formatStatus(status)}
@@ -164,45 +182,37 @@ export default function StaffDashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Data Table */}
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <RequestsTable items={items} isLoading={isLoadingIncidents || isLoading} />
-        </div>
+        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
+          <RequestsTable items={items} isLoading={loading} />
+        </section>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-gray-200 shadow-sm">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoadingIncidents || isLoading || prevCursors.length === 0}
+        <section className="flex items-center justify-between gap-3 rounded-[24px] border border-slate-200 bg-white p-4">
+          <button
+            type="button"
+            disabled={loading || prevCursors.length === 0}
             onClick={onPrev}
-            leftIcon={<ChevronLeft size={16} />}
-            className="rounded-xl border-gray-300 hover:bg-gray-50"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-black text-slate-700 transition-colors hover:bg-white disabled:pointer-events-none disabled:opacity-50"
           >
+            <ChevronLeft size={16} />
             ก่อนหน้า
-          </Button>
-          
-          <div className="text-sm font-medium text-gray-500">
-            {isLoadingIncidents || isLoading
-              ? 'กำลังโหลด...'
-              : incidentId === ALL_INCIDENTS_VALUE
-                ? `ทั้งหมด ${items.length} รายการ`
-                : `รายการที่ ${(prevCursors.length * 20) + 1} - ${(prevCursors.length * 20) + items.length}`}
+          </button>
+
+          <div className="text-center text-sm font-bold text-slate-500">
+            {loading ? 'กำลังโหลด...' : `รายการที่ ${prevCursors.length * 20 + 1} - ${prevCursors.length * 20 + items.length}`}
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isLoadingIncidents || isLoading || incidentId === ALL_INCIDENTS_VALUE || !nextCursor}
+          <button
+            type="button"
+            disabled={loading || !nextCursor}
             onClick={onNext}
-            rightIcon={<ChevronRight size={16} />}
-            className="rounded-xl border-gray-300 hover:bg-gray-50"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-black text-slate-700 transition-colors hover:bg-white disabled:pointer-events-none disabled:opacity-50"
           >
             ถัดไป
-          </Button>
-        </div>
+            <ChevronRight size={16} />
+          </button>
+        </section>
       </div>
     </AppShell>
   );

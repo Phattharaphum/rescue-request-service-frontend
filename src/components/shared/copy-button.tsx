@@ -1,6 +1,7 @@
 // src/components/shared/copy-button.tsx
 'use client';
-import { Copy, CheckCircle2 } from 'lucide-react';
+
+import { CheckCircle2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCopy } from '@/lib/hooks/use-copy';
 import { cn } from '@/lib/utils/cn';
@@ -27,11 +28,11 @@ export function CopyButton({ text, className }: CopyButtonProps) {
         )
       }
       className={cn(
-        'rounded-lg font-medium transition-all duration-200',
-        copied 
-          ? 'bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800' 
+        'rounded-lg font-medium transition-colors duration-200',
+        copied
+          ? 'bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800'
           : 'bg-blue-50/50 text-blue-700 hover:bg-blue-100 hover:text-blue-800',
-        className
+        className,
       )}
       aria-label="คัดลอกรหัส"
     >

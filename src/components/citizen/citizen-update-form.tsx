@@ -1,15 +1,15 @@
-// src\components\citizen\citizen-update-form.tsx
+// src/components/citizen/citizen-update-form.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm, useWatch, Controller } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { SpecialNeedsInput } from '@/components/citizen/special-needs-input';
 import { citizenUpdateSchema, CitizenUpdateFormValues } from '@/lib/schemas/citizen';
@@ -127,146 +127,177 @@ export function CitizenUpdateForm({ requestId, trackingCode, onSuccess }: Citize
   };
 
   return (
-    <Card>
-      <CardHeader title="ส่งข้อมูลเพิ่มเติม" />
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <input type="hidden" {...register('trackingCode')} />
+    <section className="rounded-[28px] border border-slate-200 bg-white p-5 sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-cyan-700">Send update</p>
+          <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">
+            ส่งข้อมูลเพิ่มเติม
+          </h2>
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-200 text-slate-950">
+          <Send size={22} />
+        </div>
+      </div>
 
-          {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <input type="hidden" {...register('trackingCode')} />
 
-          {success && (
-            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              ส่งข้อมูลเพิ่มเติมสำเร็จแล้ว
-            </div>
+        {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
+
+        {success && (
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold leading-6 text-emerald-700">
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+            ส่งข้อมูลเพิ่มเติมสำเร็จแล้ว
+          </div>
+        )}
+
+        <Controller
+          name="updateType"
+          control={control}
+          render={({ field }) => (
+            <Select
+              label="ประเภทข้อมูลที่ต้องการอัปเดต"
+              required
+              options={UPDATE_TYPE_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.updateType?.message}
+            />
           )}
+        />
 
+        {updateType === 'NOTE' && (
           <Controller
-            name="updateType"
+            name="updatePayload.note"
             control={control}
             render={({ field }) => (
-              <Select
-                label="ประเภทข้อมูลที่ต้องการอัปเดต"
+              <Textarea
+                label="หมายเหตุ"
                 required
-                options={UPDATE_TYPE_OPTIONS}
-                value={field.value}
+                placeholder="ระบุข้อมูลเพิ่มเติม..."
+                value={(field.value as string) ?? ''}
                 onChange={field.onChange}
-                error={errors.updateType?.message}
+                error={(errors.updatePayload as Record<string, { message?: string }>)?.note?.message}
               />
             )}
           />
+        )}
 
-          {updateType === 'NOTE' && (
+        {updateType === 'LOCATION_DETAILS' && (
+          <Controller
+            name="updatePayload.locationDetails"
+            control={control}
+            render={({ field }) => (
+              <Textarea
+                label="รายละเอียดตำแหน่ง"
+                required
+                placeholder="ระบุตำแหน่งปัจจุบันให้ละเอียดขึ้น"
+                value={(field.value as string) ?? ''}
+                onChange={field.onChange}
+                error={
+                  (errors.updatePayload as Record<string, { message?: string }>)?.locationDetails
+                    ?.message
+                }
+              />
+            )}
+          />
+        )}
+
+        {updateType === 'PEOPLE_COUNT' && (
+          <Controller
+            name="updatePayload.peopleCount"
+            control={control}
+            render={({ field }) => (
+              <Input
+                label="จำนวนผู้ประสบภัย"
+                required
+                type="number"
+                min={1}
+                step={1}
+                value={(field.value as number | string) ?? ''}
+                onChange={field.onChange}
+                error={
+                  (errors.updatePayload as Record<string, { message?: string }>)?.peopleCount
+                    ?.message
+                }
+              />
+            )}
+          />
+        )}
+
+        {updateType === 'SPECIAL_NEEDS' && (
+          <div>
+            <label className="mb-1 block text-sm font-bold text-slate-700">
+              ความต้องการพิเศษ <span className="text-rose-500">*</span>
+            </label>
             <Controller
-              name="updatePayload.note"
+              name="updatePayload.specialNeeds"
               control={control}
               render={({ field }) => (
-                <Textarea
-                  label="หมายเหตุ"
-                  required
-                  placeholder="ระบุข้อมูลเพิ่มเติม..."
-                  value={(field.value as string) ?? ''}
-                  onChange={field.onChange}
-                  error={(errors.updatePayload as Record<string, { message?: string }>)?.note?.message}
-                />
+                <SpecialNeedsInput value={field.value as string | undefined} onChange={field.onChange} />
               )}
             />
-          )}
+            {(errors.updatePayload as Record<string, { message?: string }>)?.specialNeeds?.message && (
+              <p className="mt-1 text-sm font-semibold text-rose-600">
+                {(errors.updatePayload as Record<string, { message?: string }>).specialNeeds?.message}
+              </p>
+            )}
+          </div>
+        )}
 
-          {updateType === 'LOCATION_DETAILS' && (
+        {updateType === 'CONTACT_INFO' && (
+          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-bold text-slate-500">
+              กรอกอย่างน้อย 1 ช่อง: ชื่อผู้ติดต่อ หรือ เบอร์โทรศัพท์
+            </p>
             <Controller
-              name="updatePayload.locationDetails"
-              control={control}
-              render={({ field }) => (
-                <Textarea
-                  label="รายละเอียดตำแหน่ง"
-                  required
-                  placeholder="ระบุตำแหน่งปัจจุบันให้ละเอียดขึ้น"
-                  value={(field.value as string) ?? ''}
-                  onChange={field.onChange}
-                  error={(errors.updatePayload as Record<string, { message?: string }>)?.locationDetails?.message}
-                />
-              )}
-            />
-          )}
-
-          {updateType === 'PEOPLE_COUNT' && (
-            <Controller
-              name="updatePayload.peopleCount"
+              name="updatePayload.contactName"
               control={control}
               render={({ field }) => (
                 <Input
-                  label="จำนวนผู้ประสบภัย"
-                  required
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={(field.value as number | string) ?? ''}
+                  label="ชื่อผู้ติดต่อ"
+                  placeholder="ชื่อ-นามสกุล"
+                  value={(field.value as string) ?? ''}
                   onChange={field.onChange}
-                  error={(errors.updatePayload as Record<string, { message?: string }>)?.peopleCount?.message}
+                  error={
+                    (errors.updatePayload as Record<string, { message?: string }>)?.contactName
+                      ?.message
+                  }
                 />
               )}
             />
-          )}
-
-          {updateType === 'SPECIAL_NEEDS' && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                ความต้องการพิเศษ <span className="text-red-500">*</span>
-              </label>
-              <Controller
-                name="updatePayload.specialNeeds"
-                control={control}
-                render={({ field }) => (
-                  <SpecialNeedsInput value={field.value as string | undefined} onChange={field.onChange} />
-                )}
-              />
-              {(errors.updatePayload as Record<string, { message?: string }>)?.specialNeeds?.message && (
-                <p className="mt-1 text-sm text-red-600">
-                  {(errors.updatePayload as Record<string, { message?: string }>).specialNeeds?.message}
-                </p>
+            <Controller
+              name="updatePayload.contactPhone"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  label="เบอร์โทรศัพท์"
+                  type="tel"
+                  placeholder="0812345678"
+                  value={(field.value as string) ?? ''}
+                  onChange={field.onChange}
+                  error={
+                    (errors.updatePayload as Record<string, { message?: string }>)?.contactPhone
+                      ?.message
+                  }
+                />
               )}
-            </div>
-          )}
+            />
+          </div>
+        )}
 
-          {updateType === 'CONTACT_INFO' && (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500">กรอกอย่างน้อย 1 ช่อง (ชื่อผู้ติดต่อ หรือ เบอร์โทรศัพท์)</p>
-              <Controller
-                name="updatePayload.contactName"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    label="ชื่อผู้ติดต่อ"
-                    placeholder="ชื่อ-นามสกุล"
-                    value={(field.value as string) ?? ''}
-                    onChange={field.onChange}
-                    error={(errors.updatePayload as Record<string, { message?: string }>)?.contactName?.message}
-                  />
-                )}
-              />
-              <Controller
-                name="updatePayload.contactPhone"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    label="เบอร์โทรศัพท์"
-                    type="tel"
-                    placeholder="0812345678"
-                    value={(field.value as string) ?? ''}
-                    onChange={field.onChange}
-                    error={(errors.updatePayload as Record<string, { message?: string }>)?.contactPhone?.message}
-                  />
-                )}
-              />
-            </div>
-          )}
-
-          <Button type="submit" variant="primary" className="w-full" loading={isSubmitting} disabled={isSubmitting}>
-            {isSubmitting ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลเพิ่มเติม'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <Button
+          type="submit"
+          variant="primary"
+          className="h-12 w-full rounded-2xl bg-slate-950 font-black hover:bg-slate-800"
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          leftIcon={!isSubmitting ? <Send size={17} /> : undefined}
+        >
+          {isSubmitting ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลเพิ่มเติม'}
+        </Button>
+      </form>
+    </section>
   );
 }

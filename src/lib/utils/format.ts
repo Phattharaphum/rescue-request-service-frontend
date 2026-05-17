@@ -1,10 +1,10 @@
-// src\lib\utils\format.ts
+// src/lib/utils/format.ts
 import {
+  PriorityLevel,
   RequestStatus,
   RequestType,
   SourceChannel,
   UpdateType,
-  PriorityLevel,
 } from '@/types/rescue';
 import { getRequestTypeLabel } from '@/lib/config/request-types';
 
@@ -47,10 +47,10 @@ const UPDATE_TYPE_LABELS: Record<UpdateType, string> = {
 };
 
 const PRIORITY_LEVEL_LABELS: Record<PriorityLevel, string> = {
-  LOW: 'Low',
-  MEDIUM: 'Medium',
-  HIGH: 'High',
-  CRITICAL: 'Critical',
+  LOW: 'ต่ำ',
+  MEDIUM: 'ปานกลาง',
+  HIGH: 'สูง',
+  CRITICAL: 'วิกฤต',
 };
 
 export function formatStatus(status: RequestStatus): string {

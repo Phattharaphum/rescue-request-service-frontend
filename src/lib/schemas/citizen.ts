@@ -1,4 +1,3 @@
-// src\lib\schemas\citizen.ts
 import { z } from 'zod';
 import { phoneSchema } from '@/lib/schemas/common';
 import { REQUEST_TYPE_VALUES } from '@/lib/config/request-types';
@@ -15,16 +14,16 @@ const UPDATE_TYPES = [
 export const rescueRequestSchema = z.object({
   incidentId: z.string().min(1, 'กรุณาเลือกเหตุการณ์'),
   requestType: z.enum(REQUEST_TYPE_VALUES, { error: 'กรุณาเลือกประเภทคำขอ' }),
-  description: z.string().min(1, 'กรุณาอธิบายสถานการณ์').max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
+  description: z
+    .string()
+    .min(1, 'กรุณาอธิบายสถานการณ์')
+    .max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
   peopleCount: z.coerce
     .number()
     .int('ต้องเป็นจำนวนเต็ม')
     .min(1, 'ต้องมีผู้ประสบภัยอย่างน้อย 1 คน')
     .max(10000, 'ไม่เกิน 10,000 คน'),
-  latitude: z.coerce
-    .number()
-    .min(-90, 'ละติจูดไม่ถูกต้อง')
-    .max(90, 'ละติจูดไม่ถูกต้อง'),
+  latitude: z.coerce.number().min(-90, 'ละติจูดไม่ถูกต้อง').max(90, 'ละติจูดไม่ถูกต้อง'),
   longitude: z.coerce
     .number()
     .min(-180, 'ลองจิจูดไม่ถูกต้อง')
@@ -56,7 +55,6 @@ export const trackingLookupSchema = z.object({
 
 export type TrackingLookupFormValues = z.infer<typeof trackingLookupSchema>;
 
-// Dynamic payload schemas per updateType
 const notePayloadSchema = z.object({
   note: z.string().trim().min(1, 'กรุณากรอกข้อความ').max(1000, 'ไม่เกิน 1,000 ตัวอักษร'),
 });

@@ -1,9 +1,8 @@
-// src\components\citizen\citizen-updates-list.tsx
+// src/components/citizen/citizen-updates-list.tsx
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/shared/loading-state';
 import { ErrorAlert } from '@/components/shared/error-alert';
@@ -36,7 +35,7 @@ function SpecialNeedsChips({ value }: { value: unknown }) {
         : [];
 
   if (chips.length === 0) {
-    return <span className="text-gray-500">-</span>;
+    return <span className="text-slate-500">-</span>;
   }
 
   return (
@@ -44,7 +43,7 @@ function SpecialNeedsChips({ value }: { value: unknown }) {
       {chips.map((chip) => (
         <span
           key={chip}
-          className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
+          className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700"
         >
           {chip}
         </span>
@@ -53,18 +52,24 @@ function SpecialNeedsChips({ value }: { value: unknown }) {
   );
 }
 
-function PayloadSummary({ updateType, payload }: { updateType: UpdateType; payload: Record<string, unknown> }) {
+function PayloadSummary({
+  updateType,
+  payload,
+}: {
+  updateType: UpdateType;
+  payload: Record<string, unknown>;
+}) {
   switch (updateType) {
     case 'NOTE':
-      return <span className="text-gray-700">{String(payload.note ?? '-')}</span>;
+      return <span>{String(payload.note ?? '-')}</span>;
 
     case 'LOCATION_DETAILS':
-      return <span className="text-gray-700">{String(payload.locationDetails ?? '-')}</span>;
+      return <span>{String(payload.locationDetails ?? '-')}</span>;
 
     case 'PEOPLE_COUNT':
       return (
-        <span className="text-gray-700">
-          จำนวน <span className="font-semibold">{String(payload.peopleCount ?? '-')}</span> คน
+        <span>
+          จำนวน <span className="font-black">{String(payload.peopleCount ?? '-')}</span> คน
         </span>
       );
 
@@ -75,7 +80,7 @@ function PayloadSummary({ updateType, payload }: { updateType: UpdateType; paylo
       const contactName = payload.contactName ? String(payload.contactName) : '-';
       const contactPhone = payload.contactPhone ? String(payload.contactPhone) : '-';
       return (
-        <div className="space-y-1 text-gray-700">
+        <div className="space-y-1">
           <p>ชื่อผู้ติดต่อ: {contactName}</p>
           <p>เบอร์โทรศัพท์: {contactPhone}</p>
         </div>
@@ -83,55 +88,65 @@ function PayloadSummary({ updateType, payload }: { updateType: UpdateType; paylo
     }
 
     default:
-      return <span className="italic text-gray-400">-</span>;
+      return <span className="italic text-slate-400">-</span>;
   }
 }
 
 export function CitizenUpdatesList({ requestId }: CitizenUpdatesListProps) {
-
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['citizen-updates', requestId],
     queryFn: () => listCitizenUpdates(requestId, { limit: 50 }),
   });
 
   return (
-    <Card>
-      <CardHeader title="ประวัติการแจ้งข้อมูล" />
-      <CardContent>
-        {isLoading && <LoadingState message="กำลังโหลดประวัติ..." />}
+    <section className="rounded-[28px] border border-slate-200 bg-white p-5 sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-cyan-700">Update history</p>
+          <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">
+            ประวัติการแจ้งข้อมูล
+          </h2>
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+          <MessageSquare size={22} />
+        </div>
+      </div>
 
-        {error && <ErrorAlert message="ไม่สามารถโหลดประวัติได้" onRetry={() => refetch()} />}
+      {isLoading && <LoadingState message="กำลังโหลดประวัติ..." />}
 
-        {!isLoading && !error && data?.items.length === 0 && (
-          <EmptyState
-            icon={<MessageSquare size={32} />}
-            title="ยังไม่มีการอัปเดต"
-            description="เมื่อคุณส่งข้อมูลเพิ่มเติม จะแสดงที่นี่"
-          />
-        )}
+      {error && <ErrorAlert message="ไม่สามารถโหลดประวัติได้" onRetry={() => refetch()} />}
 
-        {!isLoading && data && data.items.length > 0 && (
-          <div className="space-y-3">
-            {data.items.map((item) => (
-              <div
-                key={item.updateId}
-                className="flex flex-col gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge variant={UPDATE_TYPE_VARIANT[item.updateType] ?? 'gray'} size="sm">
-                    {formatUpdateType(item.updateType)}
-                  </Badge>
-                  <span className="ml-auto text-xs text-gray-400">{formatDateTime(item.createdAt)}</span>
-                </div>
+      {!isLoading && !error && data?.items.length === 0 && (
+        <EmptyState
+          icon={<MessageSquare size={32} />}
+          title="ยังไม่มีการอัปเดต"
+          description="เมื่อคุณส่งข้อมูลเพิ่มเติม จะแสดงที่นี่"
+        />
+      )}
 
-                <div className="rounded-md border border-gray-200 bg-white p-2 text-sm">
-                  <PayloadSummary updateType={item.updateType} payload={item.updatePayload} />
-                </div>
+      {!isLoading && data && data.items.length > 0 && (
+        <div className="grid gap-3">
+          {data.items.map((item) => (
+            <div
+              key={item.updateId}
+              className="flex flex-col gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 p-4"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={UPDATE_TYPE_VARIANT[item.updateType] ?? 'gray'} size="sm">
+                  {formatUpdateType(item.updateType)}
+                </Badge>
+                <span className="ml-auto text-xs font-bold text-slate-500">
+                  {formatDateTime(item.createdAt)}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+              <div className="rounded-xl border border-cyan-100 bg-white p-3 text-sm font-semibold leading-6 text-slate-700">
+                <PayloadSummary updateType={item.updateType} payload={item.updatePayload} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

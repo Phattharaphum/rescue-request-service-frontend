@@ -1,150 +1,136 @@
 // src/components/citizen/citizen-status-card.tsx
 'use client';
 
+import type React from 'react';
 import {
-  User,
-  Phone,
-  Users,
-  Clock,
-  Truck,
-  FileText,
   AlertCircle,
   CheckCircle2,
-  XCircle,
+  Clock,
+  FileText,
   HeartPulse,
-  PackageOpen,
-  Route,
   MapPinned,
+  PackageOpen,
+  Phone,
+  Route,
+  Truck,
+  User,
+  Users,
+  XCircle,
   type LucideIcon,
 } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { InfoItem } from '@/components/shared/info-item';
+import { CopyButton } from '@/components/shared/copy-button';
 import { LocationSummary } from '@/components/citizen/location-summary';
 import { CitizenStatusResponse, RequestStatus } from '@/types/rescue';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils/date';
-import { formatRequestType, formatPriorityLevel, formatStatus } from '@/lib/utils/format';
+import { formatPriorityLevel, formatRequestType, formatStatus } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
-import { cn } from '@/lib/utils/cn';
-import { CopyButton } from '@/components/shared/copy-button';
 import { isSupportedRequestType, type SupportedRequestType } from '@/lib/config/request-types';
-
-const PRIORITY_VARIANT_MAP = {
-  LOW: 'gray',
-  MEDIUM: 'blue',
-  HIGH: 'amber',
-  CRITICAL: 'red',
-} as const;
-
-interface StatusPresentation {
-  icon: LucideIcon;
-  frameClass: string;
-  stripeClass: string;
-  iconWrapClass: string;
-  iconClass: string;
-  headlineClass: string;
-  messageClass: string;
-  suggestionClass: string;
-  pulseClass: string;
-}
-
-const STATUS_PRESENTATION_MAP: Record<RequestStatus, StatusPresentation> = {
-  SUBMITTED: {
-    icon: FileText,
-    frameClass: 'border-slate-200 bg-gradient-to-br from-slate-50 to-white',
-    stripeClass: 'bg-slate-500',
-    iconWrapClass: 'bg-slate-100 border border-slate-200',
-    iconClass: 'text-slate-700',
-    headlineClass: 'text-slate-900',
-    messageClass: 'border-slate-200 bg-white text-slate-800',
-    suggestionClass: 'border-slate-200 bg-slate-50 text-slate-700',
-    pulseClass: 'bg-slate-300/70',
-  },
-  TRIAGED: {
-    icon: AlertCircle,
-    frameClass: 'border-amber-200 bg-gradient-to-br from-amber-50 to-white',
-    stripeClass: 'bg-amber-500',
-    iconWrapClass: 'bg-amber-100 border border-amber-200',
-    iconClass: 'text-amber-700',
-    headlineClass: 'text-amber-900',
-    messageClass: 'border-amber-200 bg-white text-amber-900',
-    suggestionClass: 'border-amber-200 bg-amber-50 text-amber-800',
-    pulseClass: 'bg-amber-300/70',
-  },
-  ASSIGNED: {
-    icon: Truck,
-    frameClass: 'border-sky-200 bg-gradient-to-br from-sky-50 to-white',
-    stripeClass: 'bg-sky-500',
-    iconWrapClass: 'bg-sky-100 border border-sky-200',
-    iconClass: 'text-sky-700',
-    headlineClass: 'text-sky-900',
-    messageClass: 'border-sky-200 bg-white text-sky-900',
-    suggestionClass: 'border-sky-200 bg-sky-50 text-sky-800',
-    pulseClass: 'bg-sky-300/70',
-  },
-  IN_PROGRESS: {
-    icon: Clock,
-    frameClass: 'border-indigo-200 bg-gradient-to-br from-indigo-50 to-white',
-    stripeClass: 'bg-indigo-500',
-    iconWrapClass: 'bg-indigo-100 border border-indigo-200',
-    iconClass: 'text-indigo-700',
-    headlineClass: 'text-indigo-900',
-    messageClass: 'border-indigo-200 bg-white text-indigo-900',
-    suggestionClass: 'border-indigo-200 bg-indigo-50 text-indigo-800',
-    pulseClass: 'bg-indigo-300/70',
-  },
-  RESOLVED: {
-    icon: CheckCircle2,
-    frameClass: 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white',
-    stripeClass: 'bg-emerald-500',
-    iconWrapClass: 'bg-emerald-100 border border-emerald-200',
-    iconClass: 'text-emerald-700',
-    headlineClass: 'text-emerald-900',
-    messageClass: 'border-emerald-200 bg-white text-emerald-900',
-    suggestionClass: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    pulseClass: 'bg-emerald-300/70',
-  },
-  CANCELLED: {
-    icon: XCircle,
-    frameClass: 'border-rose-200 bg-gradient-to-br from-rose-50 to-white',
-    stripeClass: 'bg-rose-500',
-    iconWrapClass: 'bg-rose-100 border border-rose-200',
-    iconClass: 'text-rose-700',
-    headlineClass: 'text-rose-900',
-    messageClass: 'border-rose-200 bg-white text-rose-900',
-    suggestionClass: 'border-rose-200 bg-rose-50 text-rose-800',
-    pulseClass: 'bg-rose-300/70',
-  },
-};
+import { cn } from '@/lib/utils/cn';
 
 interface CitizenStatusCardProps {
   data: CitizenStatusResponse;
   incidentDescription?: string;
 }
 
-const REQUEST_TYPE_PRESENTATION: Record<
+const STATUS_META: Record<
+  RequestStatus,
+  {
+    icon: LucideIcon;
+    panel: string;
+    iconBox: string;
+    stripe: string;
+  }
+> = {
+  SUBMITTED: {
+    icon: FileText,
+    panel: 'border-slate-200 bg-slate-50',
+    iconBox: 'bg-slate-950 text-white',
+    stripe: 'bg-slate-500',
+  },
+  TRIAGED: {
+    icon: AlertCircle,
+    panel: 'border-amber-200 bg-amber-50',
+    iconBox: 'bg-amber-300 text-slate-950',
+    stripe: 'bg-amber-300',
+  },
+  ASSIGNED: {
+    icon: Truck,
+    panel: 'border-blue-200 bg-blue-50',
+    iconBox: 'bg-blue-600 text-white',
+    stripe: 'bg-blue-500',
+  },
+  IN_PROGRESS: {
+    icon: Clock,
+    panel: 'border-cyan-200 bg-cyan-50',
+    iconBox: 'bg-cyan-300 text-slate-950',
+    stripe: 'bg-cyan-300',
+  },
+  RESOLVED: {
+    icon: CheckCircle2,
+    panel: 'border-emerald-200 bg-emerald-50',
+    iconBox: 'bg-emerald-500 text-white',
+    stripe: 'bg-emerald-400',
+  },
+  CANCELLED: {
+    icon: XCircle,
+    panel: 'border-rose-200 bg-rose-50',
+    iconBox: 'bg-rose-500 text-white',
+    stripe: 'bg-rose-500',
+  },
+};
+
+const REQUEST_TYPE_META: Record<
   SupportedRequestType,
   { icon: LucideIcon; className: string; iconClassName: string }
 > = {
   MEDICAL: {
     icon: HeartPulse,
     className: 'border-rose-200 bg-rose-50 text-rose-800',
-    iconClassName: 'bg-rose-600 text-white',
+    iconClassName: 'bg-rose-500 text-white',
   },
   EVACUATION: {
     icon: Route,
     className: 'border-amber-200 bg-amber-50 text-amber-800',
-    iconClassName: 'bg-amber-600 text-white',
+    iconClassName: 'bg-amber-300 text-slate-950',
   },
   SUPPLY: {
     icon: PackageOpen,
     className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    iconClassName: 'bg-emerald-600 text-white',
+    iconClassName: 'bg-emerald-500 text-white',
   },
 };
 
+function InfoBlock({
+  icon,
+  label,
+  children,
+  className,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('rounded-2xl border border-slate-200 bg-white p-4', className)}>
+      <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-bold leading-6 text-slate-950">{children}</div>
+    </div>
+  );
+}
+
 export function CitizenStatusCard({ data, incidentDescription }: CitizenStatusCardProps) {
+  const statusMeta = STATUS_META[data.status];
+  const StatusIcon = statusMeta.icon;
+  const headline = data.statusMessage?.trim() || formatStatus(data.status);
+  const requestTypeMeta = isSupportedRequestType(data.requestType)
+    ? REQUEST_TYPE_META[data.requestType]
+    : undefined;
+  const RequestTypeIcon = requestTypeMeta?.icon ?? FileText;
   const parsedSpecialNeeds = parseSpecialNeeds(data.specialNeeds);
   const specialNeedChips =
     parsedSpecialNeeds.mode === 'chip'
@@ -152,273 +138,200 @@ export function CitizenStatusCard({ data, incidentDescription }: CitizenStatusCa
       : parsedSpecialNeeds.text
         ? [parsedSpecialNeeds.text]
         : [];
-  const statusPresentation = STATUS_PRESENTATION_MAP[data.status];
-  const StatusIcon = statusPresentation.icon;
-  const isActiveStatus = data.status !== 'RESOLVED' && data.status !== 'CANCELLED';
-  const headline = data.statusMessage?.trim() || formatStatus(data.status);
-  const requestTypePresentation = isSupportedRequestType(data.requestType)
-    ? REQUEST_TYPE_PRESENTATION[data.requestType]
-    : undefined;
-  const RequestTypeIcon = requestTypePresentation?.icon ?? FileText;
 
   return (
-    <div className="space-y-6">
-      {/* Status Overview */}
-      <Card className={cn('overflow-hidden shadow-sm', statusPresentation.frameClass)}>
-        <div className={cn('h-1.5 w-full', statusPresentation.stripeClass)}></div>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex items-start gap-4">
-                <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-sm', statusPresentation.iconWrapClass)}>
-                  {isActiveStatus && (
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'absolute inset-0 rounded-2xl animate-pulse opacity-60',
-                        statusPresentation.pulseClass,
-                      )}
-                    />
-                  )}
-                  <StatusIcon size={28} className={cn('relative z-10', statusPresentation.iconClass)} />
-                </div>
-
-                <div className="space-y-2">
-                  <StatusBadge status={data.status} size="md" dot />
-                  <p className={cn('text-xl font-bold leading-snug', statusPresentation.headlineClass)}>
-                    {headline}
-                  </p>
-                </div>
-              </div>
-
-              {data.lastUpdatedAt && (
-                <span
-                  title={formatDateTime(data.lastUpdatedAt)}
-                  className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm border border-gray-100"
-                >
-                  {formatRelativeTime(data.lastUpdatedAt)}
-                </span>
-              )}
-            </div>
-
-            <div className={cn('rounded-xl border px-4 py-3 text-sm font-medium shadow-sm', statusPresentation.messageClass)}>
-              <div className="flex items-start gap-2.5">
-                <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                <p className="leading-relaxed">{headline}</p>
-              </div>
-            </div>
-
-            {data.nextSuggestedAction && (
+    <div className="space-y-5">
+      <section className={cn('overflow-hidden rounded-[30px] border', statusMeta.panel)}>
+        <div className={cn('h-3 w-full', statusMeta.stripe)} />
+        <div className="p-5 sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
               <div
                 className={cn(
-                  'flex items-start gap-3 rounded-xl border px-4 py-3.5 text-left shadow-sm',
-                  statusPresentation.suggestionClass,
+                  'flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px]',
+                  statusMeta.iconBox,
                 )}
               >
-                <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                <p className="text-sm font-medium leading-relaxed">{data.nextSuggestedAction}</p>
+                <StatusIcon size={32} />
+              </div>
+              <div>
+                <StatusBadge status={data.status} size="md" dot />
+                <h1 className="mt-3 text-2xl font-black leading-tight tracking-normal text-slate-950">
+                  {headline}
+                </h1>
+                {data.lastUpdatedAt && (
+                  <p className="mt-2 text-xs font-bold text-slate-500">
+                    อัปเดตล่าสุด {formatRelativeTime(data.lastUpdatedAt)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {data.lastUpdatedAt && (
+              <span className="w-fit rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-500">
+                {formatDateTime(data.lastUpdatedAt)}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <div className="rounded-2xl border border-white bg-white p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle size={20} className="mt-0.5 shrink-0 text-slate-500" />
+                <p className="text-sm font-bold leading-6 text-slate-800">{headline}</p>
+              </div>
+            </div>
+            {data.nextSuggestedAction && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-xs font-black text-amber-700">คำแนะนำถัดไป</p>
+                <p className="mt-1 text-sm font-semibold leading-6 text-amber-900">
+                  {data.nextSuggestedAction}
+                </p>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Request Info */}
-      <Card className="overflow-hidden border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-blue-600" />
-        <CardHeader title="รายละเอียดคำขอ" className="bg-white" />
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
-            <InfoItem
-              icon={<FileText size={16} className="text-gray-400" />}
-              label="รหัสคำขออ้างอิง"
-              value={
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-sm font-semibold text-gray-900">
-                    {data.requestId}
-                  </span>
-                  <CopyButton text={data.requestId} />
-                </div>
-              }
-            />
-            <InfoItem
-              icon={<MapPinned size={16} className="text-gray-400" />}
-              label="รหัสเหตุการณ์ภัยพิบัติ"
-              value={
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-sm font-semibold text-gray-900">
-                    {data.incidentId}
-                  </span>
-                  <CopyButton text={data.incidentId} />
-                </div>
-              }
-            />
-            <div className="sm:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-              <InfoItem
-                icon={<MapPinned size={16} className="text-blue-500" />}
-                label="เหตุการณ์ภัยพิบัติ"
-                value={
-                  <span className="text-sm font-semibold leading-6 text-blue-950">
-                    {incidentDescription || data.incidentId}
-                  </span>
-                }
-              />
-            </div>
-            <InfoItem
-              label="ประเภทความช่วยเหลือ"
-              value={
-                <div
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-2xl border px-3 py-2',
-                    requestTypePresentation?.className ?? 'border-gray-200 bg-gray-50 text-gray-800',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-xl',
-                      requestTypePresentation?.iconClassName ?? 'bg-gray-700 text-white',
-                    )}
-                  >
-                    <RequestTypeIcon size={18} />
-                  </span>
-                  <span className="text-sm font-black">{formatRequestType(data.requestType)}</span>
-                </div>
-              }
-            />
-            <div className="sm:col-span-2 bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <InfoItem
-                label="รายละเอียดสถานการณ์"
-                value={data.description}
-              />
-            </div>
-            <InfoItem
-              icon={<Users size={16} className="text-gray-400" />}
-              label="จำนวนผู้ประสบภัย"
-              value={<span className="font-semibold">{data.peopleCount ?? '-'} คน</span>}
-            />
-            <InfoItem
-              label="ระดับความเร่งด่วน"
-              value={
-                data.priorityLevel ? (
-                  <Badge
-                    variant={PRIORITY_VARIANT_MAP[data.priorityLevel] ?? 'gray'}
-                    size="sm"
-                  >
-                    {formatPriorityLevel(data.priorityLevel)}
-                  </Badge>
-                ) : (
-                  <span className="text-gray-400">รอการประเมิน</span>
-                )
-              }
-            />
-            {data.specialNeeds && (
-              <div className="sm:col-span-2 pt-2 border-t border-gray-100">
-                <InfoItem
-                  label="ความต้องการพิเศษ"
-                  value={
-                    specialNeedChips.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {specialNeedChips.map((item) => (
-                          <span
-                            key={item}
-                            className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
-                          >
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )
-                  }
-                />
-              </div>
-            )}
+      <section className="rounded-[28px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-cyan-700">Request detail</p>
+            <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">
+              รายละเอียดคำขอ
+            </h2>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+            <FileText size={22} />
+          </div>
+        </div>
 
-      {/* Location */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <InfoBlock icon={<FileText size={14} />} label="รหัสคำขออ้างอิง">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="break-all rounded-xl bg-slate-100 px-3 py-1.5 font-mono text-xs font-black">
+                {data.requestId}
+              </span>
+              <CopyButton text={data.requestId} />
+            </div>
+          </InfoBlock>
+
+          <InfoBlock icon={<MapPinned size={14} />} label="รหัสเหตุการณ์ภัยพิบัติ">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="break-all rounded-xl bg-slate-100 px-3 py-1.5 font-mono text-xs font-black">
+                {data.incidentId}
+              </span>
+              <CopyButton text={data.incidentId} />
+            </div>
+          </InfoBlock>
+
+          <InfoBlock icon={<MapPinned size={14} />} label="เหตุการณ์ภัยพิบัติ" className="sm:col-span-2">
+            {incidentDescription || data.incidentId}
+          </InfoBlock>
+
+          <InfoBlock label="ประเภทความช่วยเหลือ">
+            <div
+              className={cn(
+                'inline-flex items-center gap-2 rounded-2xl border px-3 py-2',
+                requestTypeMeta?.className ?? 'border-slate-200 bg-slate-50 text-slate-800',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-xl',
+                  requestTypeMeta?.iconClassName ?? 'bg-slate-950 text-white',
+                )}
+              >
+                <RequestTypeIcon size={18} />
+              </span>
+              <span className="font-black">{formatRequestType(data.requestType)}</span>
+            </div>
+          </InfoBlock>
+
+          <InfoBlock icon={<Users size={14} />} label="จำนวนผู้ประสบภัย">
+            {data.peopleCount ?? '-'} คน
+          </InfoBlock>
+
+          <InfoBlock label="ระดับความเร่งด่วน">
+            {data.priorityLevel ? formatPriorityLevel(data.priorityLevel) : 'รอการประเมิน'}
+          </InfoBlock>
+
+          <InfoBlock label="รายละเอียดสถานการณ์" className="sm:col-span-2">
+            {data.description || '-'}
+          </InfoBlock>
+
+          {data.specialNeeds && (
+            <InfoBlock label="ความต้องการพิเศษ" className="sm:col-span-2">
+              {specialNeedChips.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {specialNeedChips.map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                '-'
+              )}
+            </InfoBlock>
+          )}
+        </div>
+      </section>
+
       <LocationSummary location={data.location} />
 
-      {/* Contact Info & Timestamps (Combined for compact view) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader title="ข้อมูลผู้ติดต่อ" />
-          <CardContent>
-            <div className="space-y-4">
-              <InfoItem
-                icon={<User size={16} className="text-gray-400" />}
-                label="ชื่อผู้ติดต่อ"
-                value={<span className="font-medium text-gray-900">{data.contactName}</span>}
-              />
-              <InfoItem
-                icon={<Phone size={16} className="text-gray-400" />}
-                label="เบอร์โทรศัพท์"
-                value={<span className="font-medium font-mono text-gray-900">{data.contactPhoneMasked}</span>}
-              />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-black tracking-normal text-slate-950">ข้อมูลผู้ติดต่อ</h2>
+          <div className="mt-4 grid gap-3">
+            <InfoBlock icon={<User size={14} />} label="ชื่อผู้ติดต่อ">
+              {data.contactName || '-'}
+            </InfoBlock>
+            <InfoBlock icon={<Phone size={14} />} label="เบอร์โทรศัพท์">
+              <span className="font-mono">{data.contactPhoneMasked || '-'}</span>
+            </InfoBlock>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader title="ข้อมูลเวลา" />
-          <CardContent>
-            <div className="space-y-4">
-              <InfoItem
-                icon={<Clock size={16} className="text-gray-400" />}
-                label="ยื่นคำขอเมื่อ"
-                value={data.submittedAt ? formatDateTime(data.submittedAt) : '-'}
-              />
-              <InfoItem
-                icon={<Clock size={16} className="text-blue-500" />}
-                label="อัปเดตล่าสุดระบบ"
-                value={
-                  data.lastUpdatedAt ? (
-                    <span title={formatDateTime(data.lastUpdatedAt)} className="font-medium text-blue-700">
-                      {formatRelativeTime(data.lastUpdatedAt)}
-                    </span>
-                  ) : (
-                    '-'
-                  )
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-black tracking-normal text-slate-950">ข้อมูลเวลา</h2>
+          <div className="mt-4 grid gap-3">
+            <InfoBlock icon={<Clock size={14} />} label="ยื่นคำขอเมื่อ">
+              {data.submittedAt ? formatDateTime(data.submittedAt) : '-'}
+            </InfoBlock>
+            <InfoBlock icon={<Clock size={14} />} label="อัปเดตล่าสุด">
+              {data.lastUpdatedAt ? formatRelativeTime(data.lastUpdatedAt) : '-'}
+            </InfoBlock>
+          </div>
+        </section>
       </div>
 
-      {/* Assigned Unit */}
       {data.assignedUnitId && (
-        <Card className="border-green-200 bg-green-50/30">
-          <CardHeader title="หน่วยงานที่รับผิดชอบ" className="pb-2" />
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoItem
-                icon={<Truck size={16} className="text-green-600" />}
-                label="ทีมปฏิบัติการ"
-                value={<span className="font-bold text-green-800">{data.assignedUnitId}</span>}
-              />
-              {data.assignedAt && (
-                <InfoItem
-                  icon={<Clock size={16} className="text-green-600" />}
-                  label="มอบหมายงานเมื่อ"
-                  value={<span className="text-green-800">{formatDateTime(data.assignedAt)}</span>}
-                />
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <section className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-5">
+          <h2 className="text-lg font-black tracking-normal text-emerald-950">
+            หน่วยงานที่รับผิดชอบ
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <InfoBlock icon={<Truck size={14} />} label="ทีมปฏิบัติการ">
+              {data.assignedUnitId}
+            </InfoBlock>
+            {data.assignedAt && (
+              <InfoBlock icon={<Clock size={14} />} label="มอบหมายงานเมื่อ">
+                {formatDateTime(data.assignedAt)}
+              </InfoBlock>
+            )}
+          </div>
+        </section>
       )}
 
-      {/* Latest Note */}
       {data.latestNote && (
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardHeader title="หมายเหตุล่าสุดจากเจ้าหน้าที่" />
-          <CardContent>
-            <p className="text-sm font-medium text-amber-900 leading-relaxed">{data.latestNote}</p>
-          </CardContent>
-        </Card>
+        <section className="rounded-[28px] border border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm font-black text-amber-700">หมายเหตุล่าสุดจากเจ้าหน้าที่</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-amber-950">{data.latestNote}</p>
+        </section>
       )}
     </div>
   );

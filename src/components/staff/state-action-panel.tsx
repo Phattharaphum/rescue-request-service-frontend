@@ -1,26 +1,24 @@
-// src/components/staff/state-action-panel.tsx
 'use client';
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { CheckCircle2, XCircle, UserCheck, PlayCircle, ClipboardList } from 'lucide-react';
+import { CheckCircle2, ClipboardList, PlayCircle, UserCheck, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { ErrorAlert } from '@/components/shared/error-alert';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { getAvailableActions, StateAction } from '@/lib/utils/state-machine';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 import {
-  triageRequest,
   assignRequest,
-  startRequest,
-  resolveRequest,
   cancelRequest,
+  resolveRequest,
+  startRequest,
+  triageRequest,
 } from '@/lib/api/rescue';
 import { PriorityLevel, RequestStatus } from '@/types/rescue';
 
@@ -33,26 +31,18 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  triage: 'ประเมิน/คัดกรอง',
+  triage: 'ประเมิน / คัดกรอง',
   assign: 'มอบหมายทีมปฏิบัติการ',
   start: 'เริ่มปฏิบัติการ',
-  resolve: 'ดำเนินการสำเร็จ/ปิดงาน',
+  resolve: 'ดำเนินการสำเร็จ / ปิดงาน',
   cancel: 'ยกเลิกคำขอ',
 };
 
-const ACTION_VARIANT: Record<string, 'primary' | 'secondary' | 'danger' | 'outline'> = {
-  triage: 'outline',
-  assign: 'primary',
-  start: 'primary',
-  resolve: 'primary',
-  cancel: 'danger',
-};
-
 const PRIORITY_OPTIONS: Array<{ value: PriorityLevel; label: string }> = [
-  { value: 'LOW', label: 'ต่ำ (Low)' },
-  { value: 'MEDIUM', label: 'ปานกลาง (Medium)' },
-  { value: 'HIGH', label: 'สูง (High)' },
-  { value: 'CRITICAL', label: 'วิกฤต (Critical)' },
+  { value: 'LOW', label: 'ต่ำ' },
+  { value: 'MEDIUM', label: 'ปานกลาง' },
+  { value: 'HIGH', label: 'สูง' },
+  { value: 'CRITICAL', label: 'วิกฤต' },
 ];
 
 interface StateActionPanelProps {
@@ -79,7 +69,7 @@ function parseMeta(raw?: string): Record<string, unknown> | undefined {
 
   const parsed = JSON.parse(text);
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-    throw new Error('ช่อง "ข้อมูลเพิ่มเติม (Meta)" ต้องเป็นรูปแบบ JSON Object ที่ถูกต้องเท่านั้น เช่น {"vehicleType":"BOAT"}');
+    throw new Error('ข้อมูลเพิ่มเติม (Meta) ต้องเป็น JSON Object ที่ถูกต้อง เช่น {"vehicleType":"BOAT"}');
   }
 
   return parsed as Record<string, unknown>;
@@ -87,7 +77,7 @@ function parseMeta(raw?: string): Record<string, unknown> | undefined {
 
 function resetValues() {
   return {
-    changedBy: 'เจ้าหน้าที่ศูนย์', // Default in Thai
+    changedBy: 'เจ้าหน้าที่ศูนย์',
     changedByRole: 'Dispatcher',
     responderUnitId: '',
     reason: '',
@@ -98,7 +88,12 @@ function resetValues() {
   };
 }
 
-export function StateActionPanel({ requestId, status, stateVersion, onSuccess }: StateActionPanelProps) {
+export function StateActionPanel({
+  requestId,
+  status,
+  stateVersion,
+  onSuccess,
+}: StateActionPanelProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [activeAction, setActiveAction] = useState<StateAction | null>(null);
@@ -153,7 +148,12 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
         case 'cancel':
           return cancelRequest(
             requestId,
-            { reason: data.reason?.trim() || '', changedBy: base.changedBy, changedByRole: base.changedByRole, meta: base.meta },
+            {
+              reason: data.reason?.trim() || '',
+              changedBy: base.changedBy,
+              changedByRole: base.changedByRole,
+              meta: base.meta,
+            },
             key,
             ifMatch,
           );
@@ -162,7 +162,7 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
       }
     },
     onSuccess: async (result) => {
-      toast.show(`อัปเดตสถานะสำเร็จ (แดชบอร์ด > ${requestId})`, 'success');
+      toast.show(`อัปเดตสถานะสำเร็จ (${requestId})`, 'success');
       queryClient.invalidateQueries({ queryKey: ['request-detail', requestId] });
       setActiveAction(null);
       reset(resetValues());
@@ -172,7 +172,7 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
     onError: (err: unknown) => {
       const e = err as { status?: number; message?: string };
       if (e?.status === 409) {
-        setApiError('ข้อมูลถูกอัปเดตโดยเจ้าหน้าที่ท่านอื่นไปแล้ว กรุณารีเฟรชหน้าและลองใหม่อีกครั้ง');
+        setApiError('ข้อมูลถูกอัปเดตโดยเจ้าหน้าที่ท่านอื่นแล้ว กรุณารีเฟรชหน้าและลองใหม่อีกครั้ง');
       } else if (e?.status === 422) {
         setApiError(e.message ?? 'ข้อมูลที่กรอกไม่ถูกต้องตามเงื่อนไข');
       } else {
@@ -187,35 +187,39 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
     setApiError(null);
   };
 
-  if (actions.length === 0) {
-    return null;
-  }
+  if (actions.length === 0) return null;
 
   return (
     <>
-      <Card className="border-gray-200 bg-white shadow-sm">
-        <CardHeader title="อัปเดตสถานะการปฏิบัติงาน" />
-        <CardContent>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-            {actions.map((action) => (
-              <Button
-                key={action.action}
-                variant={ACTION_VARIANT[action.action] ?? 'outline'}
-                size="md"
-                className="flex-1 sm:flex-none justify-start sm:justify-center rounded-xl shadow-sm"
-                leftIcon={ACTION_ICONS[action.action]}
-                onClick={() => {
-                  setApiError(null);
-                  setActiveAction(action);
-                }}
-                disabled={mutation.isPending}
-              >
-                {ACTION_LABELS[action.action] ?? action.label}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <section className="rounded-[28px] border border-slate-200 bg-white p-5">
+        <div className="mb-4">
+          <p className="text-sm font-black text-cyan-700">Actions</p>
+          <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">
+            อัปเดตสถานะการปฏิบัติงาน
+          </h2>
+        </div>
+        <div className="flex flex-col flex-wrap gap-3 sm:flex-row">
+          {actions.map((action) => (
+            <button
+              key={action.action}
+              type="button"
+              className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-black transition-colors sm:flex-none ${
+                action.action === 'cancel'
+                  ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                  : 'border-slate-200 bg-slate-950 text-white hover:bg-slate-800'
+              }`}
+              onClick={() => {
+                setApiError(null);
+                setActiveAction(action);
+              }}
+              disabled={mutation.isPending}
+            >
+              {ACTION_ICONS[action.action]}
+              {ACTION_LABELS[action.action] ?? action.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <Dialog
         isOpen={!!activeAction}
@@ -232,7 +236,7 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
 
           {activeAction?.requiresField === 'responderUnitId' && (
             <Input
-              label="รหัสทีม/หน่วยปฏิบัติการที่รับผิดชอบ"
+              label="รหัสทีม / หน่วยปฏิบัติการที่รับผิดชอบ"
               required
               placeholder="เช่น TEAM-A01"
               {...register('responderUnitId', { required: 'กรุณาระบุรหัสหน่วยปฏิบัติการ' })}
@@ -244,47 +248,39 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
             <Input
               label="เหตุผลที่ยกเลิก"
               required
-              placeholder="เช่น เป็นการแจ้งเหตุซ้ำ, ผู้ประสบภัยปลอดภัยแล้ว..."
+              placeholder="เช่น แจ้งเหตุซ้ำ หรือผู้ประสบภัยปลอดภัยแล้ว"
               {...register('reason', { required: 'กรุณาระบุเหตุผลที่ยกเลิก' })}
               error={errors.reason?.message}
             />
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-            <Input
-              label="รหัสเจ้าหน้าที่ทำรายการ (ID)"
-              placeholder="เช่น staff-101"
-              {...register('changedBy')}
-            />
-            <Input
-              label="บทบาท/ตำแหน่ง (Role)"
-              placeholder="เช่น Dispatcher, Field Unit"
-              {...register('changedByRole')}
-            />
+          <div className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+            <Input label="รหัสเจ้าหน้าที่ทำรายการ" placeholder="เช่น staff-101" {...register('changedBy')} />
+            <Input label="บทบาท / ตำแหน่ง" placeholder="เช่น Dispatcher, Field Unit" {...register('changedByRole')} />
           </div>
 
           {activeAction?.action !== 'cancel' && (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Select
                   label="ปรับระดับความเร่งด่วน"
                   options={PRIORITY_OPTIONS}
-                  placeholder="(เลือกเพื่อเปลี่ยนระดับ)"
+                  placeholder="เลือกเพื่อเปลี่ยนระดับ"
                   {...register('priorityLevel')}
                 />
                 <Input
                   label="คะแนนประเมินความเสี่ยง"
                   type="number"
                   step="0.1"
-                  placeholder="เช่น 85.5 (ไม่บังคับ)"
+                  placeholder="เช่น 85.5"
                   {...register('priorityScore')}
                 />
               </div>
 
               <Textarea
-                label="บันทึกการปฏิบัติงาน (Note)"
+                label="บันทึกการปฏิบัติงาน"
                 rows={3}
-                placeholder="อธิบายรายละเอียดการปฏิบัติงาน การตัดสินใจ หรือสถานการณ์หน้างาน..."
+                placeholder="อธิบายรายละเอียดการปฏิบัติงาน การตัดสินใจ หรือสถานการณ์หน้างาน"
                 {...register('note')}
               />
             </>
@@ -294,27 +290,25 @@ export function StateActionPanel({ requestId, status, stateVersion, onSuccess }:
             label="ข้อมูลเพิ่มเติมทางเทคนิค (JSON Meta)"
             rows={3}
             placeholder='{"vehicleType":"BOAT","dispatchZone":"BKK-01"}'
-            helperText="ไม่บังคับใช้ ต้องกรอกในรูปแบบ JSON Object ที่ถูกต้องเท่านั้น"
+            helperText="ไม่บังคับ ต้องเป็น JSON Object ที่ถูกต้อง"
             className="font-mono text-sm"
             {...register('meta')}
           />
 
-          <div className="flex gap-3 pt-4 border-t border-gray-100">
-            <Button
+          <div className="grid gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2">
+            <button
               type="button"
-              variant="outline"
-              size="lg"
-              className="flex-1 rounded-xl bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+              className="flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition-colors hover:bg-slate-50"
               onClick={closeDialog}
               disabled={mutation.isPending}
             >
               ยกเลิก
-            </Button>
+            </button>
             <Button
               type="submit"
               variant={activeAction?.action === 'cancel' ? 'danger' : 'primary'}
               size="lg"
-              className="flex-1 rounded-xl shadow-sm"
+              className="h-11 rounded-2xl font-black"
               loading={mutation.isPending}
             >
               {activeAction ? (ACTION_LABELS[activeAction.action] ?? 'ยืนยันการทำรายการ') : 'ยืนยัน'}

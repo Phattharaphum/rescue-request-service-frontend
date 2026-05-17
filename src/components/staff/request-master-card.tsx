@@ -1,19 +1,38 @@
-// src/components/staff/request-master-card.tsx
 'use client';
 
+import type React from 'react';
 import { Calendar, Hash, MapPin, Phone, Tag, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { InfoItem } from '@/components/shared/info-item';
+import { CopyButton } from '@/components/shared/copy-button';
+import { Badge } from '@/components/ui/badge';
 import { RescueRequestMaster } from '@/types/rescue';
 import { formatDateTime } from '@/lib/utils/date';
 import { formatRequestType, formatSourceChannel } from '@/lib/utils/format';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
-import { Badge } from '../ui/badge';
-import { CopyButton } from '@/components/shared/copy-button';
 
 interface RequestMasterCardProps {
   master: RescueRequestMaster;
-  requestId?: string;
+}
+
+function InfoBlock({
+  icon,
+  label,
+  children,
+  className = '',
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white p-4 ${className}`}>
+      <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-bold leading-6 text-slate-950">{children}</div>
+    </div>
+  );
 }
 
 export function RequestMasterCard({ master }: RequestMasterCardProps) {
@@ -26,124 +45,103 @@ export function RequestMasterCard({ master }: RequestMasterCardProps) {
         : [];
 
   return (
-    <Card className="border-gray-200 shadow-sm">
-      <CardHeader title="ข้อมูลหลักของคำขอ (Master Data)" className="bg-gray-50/50 border-b border-gray-100" />
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-          
-          {/* ข้อมูลทั่วไป */}
-          <InfoItem
-            icon={<Hash size={16} className="text-gray-400" />}
-            label="รหัสคำขออ้างอิง"
-            value={
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
-                  {master.requestId}
-                </span>
-                <CopyButton text={master.requestId} />
-              </div>
-            }
-          />
-          <InfoItem
-            icon={<Tag size={16} className="text-gray-400" />}
-            label="เหตุการณ์ภัยพิบัติ"
-            value={
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
-                  {master.incidentId}
-                </span>
-                <CopyButton text={master.incidentId} />
-              </div>
-            }
-          />
-          <InfoItem
-            label="ประเภทความช่วยเหลือ"
-            value={<span className="font-semibold text-blue-700">{formatRequestType(master.requestType)}</span>}
-          />
-          <InfoItem
-            icon={<Users size={16} className="text-gray-400" />}
-            label="จำนวนผู้ประสบภัย"
-            value={<span className="font-semibold text-gray-900">{master.peopleCount} คน</span>}
-          />
-          <div className="sm:col-span-2 bg-gray-50 rounded-xl p-4 border border-gray-100">
-            <InfoItem label="รายละเอียดสถานการณ์" value={master.description} />
-          </div>
-
-          {master.specialNeeds && (
-            <div className="sm:col-span-2 pt-2 border-t border-gray-100">
-              <InfoItem
-                label="ความต้องการพิเศษ"
-                value={
-                  specialNeedChips.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {specialNeedChips.map((chip) => (
-                        <span
-                          key={chip}
-                          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )
-                }
-              />
-            </div>
-          )}
-
-          {/* พิกัดและที่อยู่ */}
-          <div className="sm:col-span-2 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
-            <InfoItem
-              icon={<MapPin size={16} className="text-gray-400" />}
-              label="พิกัด (Lat, Lng)"
-              value={<span className="font-mono text-sm">{master.latitude.toFixed(6)}, {master.longitude.toFixed(6)}</span>}
-            />
-            {master.province && <InfoItem label="จังหวัด" value={master.province} />}
-            {master.district && <InfoItem label="อำเภอ/เขต" value={master.district} />}
-            {master.subdistrict && <InfoItem label="ตำบล/แขวง" value={master.subdistrict} />}
-            {master.addressLine && (
-              <div className="sm:col-span-2">
-                <InfoItem label="ที่อยู่" value={master.addressLine} />
-              </div>
-            )}
-            {master.locationDetails && (
-              <div className="sm:col-span-2">
-                <InfoItem label="จุดสังเกต / รายละเอียดสถานที่" value={master.locationDetails} />
-              </div>
-            )}
-          </div>
-
-          {/* ข้อมูลการติดต่อและระบบ */}
-          <div className="sm:col-span-2 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
-            <InfoItem label="ชื่อผู้แจ้ง / ผู้ติดต่อ" value={<span className="font-medium text-gray-900">{master.contactName}</span>} />
-            <InfoItem
-              icon={<Phone size={16} className="text-gray-400" />}
-              label="เบอร์โทรศัพท์"
-              value={<span className="font-mono font-medium text-gray-900">{master.contactPhone}</span>}
-            />
-            <InfoItem
-              label="ช่องทางการแจ้ง"
-              value={<Badge variant="gray" size="sm">{formatSourceChannel(master.sourceChannel)}</Badge>}
-            />
-            <InfoItem
-              icon={<Calendar size={16} className="text-gray-400" />}
-              label="เวลาที่ยื่นคำขอ"
-              value={formatDateTime(master.submittedAt)}
-            />
-            {master.lastCitizenUpdateAt && (
-              <div className="sm:col-span-2 bg-blue-50/50 rounded-lg p-3 border border-blue-100">
-                <InfoItem
-                  label="ผู้ประสบภัยอัปเดตข้อมูลล่าสุดเมื่อ"
-                  value={<span className="font-medium text-blue-800">{formatDateTime(master.lastCitizenUpdateAt)}</span>}
-                />
-              </div>
-            )}
-          </div>
-
+    <section className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-cyan-700">Master data</p>
+          <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">
+            ข้อมูลหลักของคำขอ
+          </h2>
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+          <Hash size={22} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <InfoBlock icon={<Hash size={14} />} label="รหัสคำขออ้างอิง">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="break-all rounded-xl bg-slate-100 px-3 py-1.5 font-mono text-xs font-black">
+              {master.requestId}
+            </span>
+            <CopyButton text={master.requestId} />
+          </div>
+        </InfoBlock>
+
+        <InfoBlock icon={<Tag size={14} />} label="เหตุการณ์ภัยพิบัติ">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="break-all rounded-xl bg-slate-100 px-3 py-1.5 font-mono text-xs font-black">
+              {master.incidentId}
+            </span>
+            <CopyButton text={master.incidentId} />
+          </div>
+        </InfoBlock>
+
+        <InfoBlock label="ประเภทความช่วยเหลือ">{formatRequestType(master.requestType)}</InfoBlock>
+        <InfoBlock icon={<Users size={14} />} label="จำนวนผู้ประสบภัย">
+          {master.peopleCount} คน
+        </InfoBlock>
+
+        <InfoBlock label="รายละเอียดสถานการณ์" className="sm:col-span-2">
+          {master.description}
+        </InfoBlock>
+
+        {master.specialNeeds && (
+          <InfoBlock label="ความต้องการพิเศษ" className="sm:col-span-2">
+            {specialNeedChips.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {specialNeedChips.map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              '-'
+            )}
+          </InfoBlock>
+        )}
+
+        <InfoBlock icon={<MapPin size={14} />} label="พิกัด">
+          <span className="font-mono">
+            {master.latitude.toFixed(6)}, {master.longitude.toFixed(6)}
+          </span>
+        </InfoBlock>
+        {master.province && <InfoBlock label="จังหวัด">{master.province}</InfoBlock>}
+        {master.district && <InfoBlock label="อำเภอ / เขต">{master.district}</InfoBlock>}
+        {master.subdistrict && <InfoBlock label="ตำบล / แขวง">{master.subdistrict}</InfoBlock>}
+        {master.addressLine && (
+          <InfoBlock label="ที่อยู่" className="sm:col-span-2">
+            {master.addressLine}
+          </InfoBlock>
+        )}
+        {master.locationDetails && (
+          <InfoBlock label="จุดสังเกต / รายละเอียดสถานที่" className="sm:col-span-2">
+            {master.locationDetails}
+          </InfoBlock>
+        )}
+
+        <InfoBlock label="ชื่อผู้แจ้ง / ผู้ติดต่อ">{master.contactName}</InfoBlock>
+        <InfoBlock icon={<Phone size={14} />} label="เบอร์โทรศัพท์">
+          <span className="font-mono">{master.contactPhone}</span>
+        </InfoBlock>
+        <InfoBlock label="ช่องทางการแจ้ง">
+          <Badge variant="gray" size="sm">
+            {formatSourceChannel(master.sourceChannel)}
+          </Badge>
+        </InfoBlock>
+        <InfoBlock icon={<Calendar size={14} />} label="เวลาที่ยื่นคำขอ">
+          {formatDateTime(master.submittedAt)}
+        </InfoBlock>
+        {master.lastCitizenUpdateAt && (
+          <InfoBlock label="ผู้ประสบภัยอัปเดตล่าสุดเมื่อ" className="sm:col-span-2">
+            {formatDateTime(master.lastCitizenUpdateAt)}
+          </InfoBlock>
+        )}
+      </div>
+    </section>
   );
 }

@@ -1,237 +1,41 @@
 // src/components/citizen/rescue-request-form.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useForm, Controller, type Resolver, type FieldError, type FieldErrors } from 'react-hook-form';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Controller, type Resolver, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertCircle,
   CheckCircle2,
-  ChevronDown,
-  Clock,
-  FileWarning,
+  FileText,
   HeartPulse,
   Info,
   LocateFixed,
-  MapPin,
+  MapPinned,
   PackageOpen,
   Route,
   Search,
+  Send,
+  UserRound,
+  X,
+  type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog } from '@/components/ui/dialog';
+import { ErrorAlert } from '@/components/shared/error-alert';
 import { SpecialNeedsInput } from '@/components/citizen/special-needs-input';
 import { rescueRequestSchema, RescueRequestFormValues } from '@/lib/schemas/citizen';
-import { ApiRequestError } from '@/lib/api/client';
 import { createRescueRequest } from '@/lib/api/rescue';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 import { useIncidents } from '@/lib/hooks/use-incidents';
 import { parseSpecialNeeds } from '@/lib/utils/special-needs';
-import type { ApiError, ApiErrorDetail } from '@/types/api';
 import {
   REQUEST_TYPE_OPTIONS,
   type SupportedRequestType,
 } from '@/lib/config/request-types';
-
-const MAX_CREATE_RETRIES = 3;
-const FIELD_LABELS: Record<string, string> = {
-  incidentId: 'เหตุการณ์ภัยพิบัติ',
-  requestType: 'ประเภทความช่วยเหลือที่ต้องการ',
-  description: 'รายละเอียดสถานการณ์',
-  peopleCount: 'จำนวนผู้ประสบภัย',
-  latitude: 'ละติจูด',
-  longitude: 'ลองจิจูด',
-  locationDetails: 'จุดสังเกตเพิ่มเติม',
-  addressLine: 'ที่อยู่',
-  subdistrict: 'ตำบล / แขวง',
-  district: 'อำเภอ / เขต',
-  province: 'จังหวัด',
-  contactName: 'ชื่อผู้ติดต่อ',
-  contactPhone: 'เบอร์โทรศัพท์',
-  specialNeeds: 'ความต้องการพิเศษ',
-};
-
-const REQUEST_TYPE_UI: Record<
-  SupportedRequestType,
-  {
-    icon: typeof HeartPulse;
-    selectedClass: string;
-    idleClass: string;
-    iconSelectedClass: string;
-    iconIdleClass: string;
-  }
-> = {
-  MEDICAL: {
-    icon: HeartPulse,
-    selectedClass: 'border-rose-500 bg-rose-50 ring-2 ring-rose-100 shadow-sm',
-    idleClass: 'border-gray-200 bg-white hover:border-rose-200 hover:bg-rose-50/60',
-    iconSelectedClass: 'bg-rose-600 text-white',
-    iconIdleClass: 'bg-rose-100 text-rose-700',
-  },
-  EVACUATION: {
-    icon: Route,
-    selectedClass: 'border-amber-500 bg-amber-50 ring-2 ring-amber-100 shadow-sm',
-    idleClass: 'border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/60',
-    iconSelectedClass: 'bg-amber-600 text-white',
-    iconIdleClass: 'bg-amber-100 text-amber-700',
-  },
-  SUPPLY: {
-    icon: PackageOpen,
-    selectedClass: 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100 shadow-sm',
-    idleClass: 'border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/60',
-    iconSelectedClass: 'bg-emerald-600 text-white',
-    iconIdleClass: 'bg-emerald-100 text-emerald-700',
-  },
-};
-
-interface ValidationIssue {
-  field: string;
-  message: string;
-}
-
-interface DisplayApiError {
-  status?: number;
-  message: string;
-  errorCode?: string;
-  traceId?: string;
-  requestId?: string;
-  timestamp?: string;
-  path?: string;
-  method?: string;
-  details: ApiErrorDetail[];
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isFieldError(error: unknown): error is FieldError {
-  return !!error && typeof error === 'object' && 'message' in error;
-}
-
-function collectValidationIssues(
-  errors: FieldErrors<RescueRequestFormValues>,
-  parentPath = '',
-): ValidationIssue[] {
-  return Object.entries(errors).flatMap(([key, value]) => {
-    if (!value) return [];
-
-    const currentPath = parentPath ? `${parentPath}.${key}` : key;
-
-    if (Array.isArray(value)) {
-      return value.flatMap((entry, index) =>
-        collectValidationIssues(
-          (entry ?? {}) as FieldErrors<RescueRequestFormValues>,
-          `${currentPath}[${index}]`,
-        ),
-      );
-    }
-
-    if (isFieldError(value)) {
-      return [
-        {
-          field: currentPath,
-          message:
-            typeof value.message === 'string' && value.message
-              ? value.message
-              : 'Invalid value',
-        },
-      ];
-    }
-
-    if (typeof value === 'object') {
-      return collectValidationIssues(
-        value as FieldErrors<RescueRequestFormValues>,
-        currentPath,
-      );
-    }
-
-    return [];
-  });
-}
-
-function getFieldLabel(path: string): string {
-  const rootKey = path.split('.')[0]?.replace(/\[\d+\]/g, '') ?? path;
-  return FIELD_LABELS[rootKey] ?? rootKey;
-}
-
-function getErrorCodeDescription(status?: number, errorCode?: string): string {
-  switch (errorCode) {
-    case 'BAD_REQUEST':
-      return 'คำขอมีรูปแบบไม่ถูกต้อง หรือข้อมูลบางส่วนแปลงค่าไม่ได้';
-    case 'FORBIDDEN':
-      return 'ข้อมูลยืนยันตัวตนไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึงรายการนี้';
-    case 'NOT_FOUND':
-      return 'ไม่พบข้อมูลที่ต้องการในระบบ';
-    case 'CONFLICT':
-      return 'ข้อมูลขัดแย้งกับสถานะปัจจุบัน หรือมีการส่งซ้ำ';
-    case 'VALIDATION_ERROR':
-      return 'ข้อมูลที่กรอกไม่ผ่านเงื่อนไข กรุณาตรวจสอบรายละเอียด';
-    case 'INTERNAL_ERROR':
-      return 'ระบบปลายทางเกิดข้อผิดพลาดที่ไม่คาดคิด';
-    default:
-      if (status === 400) return 'คำขอมีรูปแบบไม่ถูกต้อง';
-      if (status === 403) return 'ไม่มีสิทธิ์ดำเนินการ';
-      if (status === 404) return 'ไม่พบข้อมูล';
-      if (status === 409) return 'ข้อมูลขัดแย้งหรือส่งซ้ำ';
-      if (status === 422) return 'ข้อมูลไม่ผ่านการตรวจสอบ';
-      if (status === 500) return 'ระบบเกิดข้อผิดพลาด';
-      return 'ไม่สามารถดำเนินการได้ในขณะนี้';
-  }
-}
-
-function normalizeErrorDetails(details: ApiError['details']): ApiErrorDetail[] {
-  if (Array.isArray(details)) {
-    return details;
-  }
-
-  if (details && typeof details === 'object') {
-    return Object.entries(details).flatMap(([field, issues]) => {
-      if (!Array.isArray(issues)) return [{ field, issue: String(issues) }];
-      return issues.map((issue) => ({ field, issue }));
-    });
-  }
-
-  return [];
-}
-
-function toDisplayApiError(err: unknown): DisplayApiError {
-  if (err instanceof ApiRequestError) {
-    const errorCode = err.error.errorCode ?? err.error.code;
-
-    return {
-      status: err.status,
-      message: err.error.message || `HTTP ${err.status}`,
-      errorCode,
-      traceId: err.error.traceId ?? err.traceId,
-      requestId: err.error.requestId,
-      timestamp: err.error.timestamp,
-      path: err.error.path,
-      method: err.error.method,
-      details: normalizeErrorDetails(err.error.details),
-    };
-  }
-
-  return {
-    message:
-      (err as { message?: string })?.message ??
-      'ไม่สามารถส่งคำขอได้ กรุณาลองใหม่อีกครั้ง',
-    details: [],
-  };
-}
-
-function isTransactionConflict(err: unknown): boolean {
-  if (err instanceof ApiRequestError) {
-    const msg =
-      `${err.error?.message ?? ''} ${err.error?.code ?? ''} ${err.error?.errorCode ?? ''}`.toLowerCase();
-    return err.status === 409 || msg.includes('transaction conflict') || msg.includes('transactionconflict');
-  }
-
-  const fallbackMessage = String((err as { message?: string })?.message ?? '').toLowerCase();
-  return fallbackMessage.includes('transaction conflict') || fallbackMessage.includes('transactionconflict');
-}
 
 interface RescueRequestFormProps {
   initialRequestType?: SupportedRequestType;
@@ -243,30 +47,102 @@ interface RescueRequestFormProps {
   }) => void;
 }
 
+const REQUEST_TYPE_UI: Record<
+  SupportedRequestType,
+  {
+    icon: LucideIcon;
+    card: string;
+    selected: string;
+    iconBox: string;
+    rail: string;
+    chip: string;
+    description: string;
+  }
+> = {
+  MEDICAL: {
+    icon: HeartPulse,
+    card: 'border-rose-200 bg-rose-50 hover:bg-rose-100',
+    selected: 'border-rose-500 bg-rose-100',
+    iconBox: 'bg-rose-500 text-white',
+    rail: 'bg-rose-500',
+    chip: 'border-rose-200 bg-rose-50 text-rose-700',
+    description: 'ยา เวชภัณฑ์ ผู้ป่วยฉุกเฉิน หรือความเสี่ยงด้านสุขภาพ',
+  },
+  EVACUATION: {
+    icon: Route,
+    card: 'border-amber-200 bg-amber-50 hover:bg-amber-100',
+    selected: 'border-amber-500 bg-amber-100',
+    iconBox: 'bg-amber-300 text-slate-950',
+    rail: 'bg-amber-300',
+    chip: 'border-amber-200 bg-amber-50 text-amber-700',
+    description: 'ติดค้าง ต้องอพยพ หรือเคลื่อนย้ายออกจากพื้นที่เสี่ยง',
+  },
+  SUPPLY: {
+    icon: PackageOpen,
+    card: 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100',
+    selected: 'border-emerald-500 bg-emerald-100',
+    iconBox: 'bg-emerald-500 text-white',
+    rail: 'bg-emerald-500',
+    chip: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    description: 'อาหาร น้ำดื่ม และเสบียงจำเป็นสำหรับผู้ประสบภัย',
+  },
+};
+
+function SectionHeader({
+  index,
+  title,
+  description,
+  icon,
+}: {
+  index: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="mb-4 flex items-start justify-between gap-4">
+      <div>
+        <p className="text-xs font-black text-cyan-700">Step {index}</p>
+        <h2 className="mt-1 text-xl font-black tracking-normal text-slate-950">{title}</h2>
+        <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">{description}</p>
+      </div>
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+        {icon}
+      </div>
+    </div>
+  );
+}
+
+function ReviewBlock({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <div className="mt-1 break-words text-sm font-bold leading-6 text-slate-950">{children}</div>
+    </div>
+  );
+}
+
 export function RescueRequestForm({ initialRequestType, onSuccess }: RescueRequestFormProps) {
-  const [apiError, setApiError] = useState<DisplayApiError | null>(null);
-  const [isApiErrorModalOpen, setIsApiErrorModalOpen] = useState(false);
-  const [isMockingLocation, setIsMockingLocation] = useState(false);
+  const { incidents, isLoading: isLoadingIncidents, isError: isIncidentsError } = useIncidents();
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isIncidentDialogOpen, setIsIncidentDialogOpen] = useState(false);
   const [incidentSearch, setIncidentSearch] = useState('');
-  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [isConfirmSubmitting, setIsConfirmSubmitting] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<RescueRequestFormValues | null>(null);
-  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
-  const submitLockRef = useRef(false);
-  const {
-    incidents,
-    isLoading: isLoadingIncidents,
-    isError: isIncidentsError,
-  } = useIncidents();
+  const [isConfirmSubmitting, setIsConfirmSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
     control,
     setValue,
-    setFocus,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RescueRequestFormValues>({
     resolver: zodResolver(rescueRequestSchema) as unknown as Resolver<RescueRequestFormValues>,
@@ -283,488 +159,510 @@ export function RescueRequestForm({ initialRequestType, onSuccess }: RescueReque
     setValue('requestType', initialRequestType, { shouldDirty: true, shouldValidate: true });
   }, [initialRequestType, setValue]);
 
+  const currentRequestType = watch('requestType');
+  const selectedRequestTypeOption = currentRequestType
+    ? REQUEST_TYPE_OPTIONS.find((option) => option.value === currentRequestType)
+    : undefined;
+  const selectedRequestTypeMeta = currentRequestType
+    ? REQUEST_TYPE_UI[currentRequestType]
+    : undefined;
+
   const filteredIncidents = useMemo(() => {
     const query = incidentSearch.trim().toLowerCase();
     if (!query) return incidents;
 
     return incidents.filter((incident) =>
-      `${incident.description} ${incident.label}`.toLowerCase().includes(query),
+      `${incident.label} ${incident.description}`.toLowerCase().includes(query),
     );
   }, [incidentSearch, incidents]);
 
-  const mockGpsLocation = () => {
-    setIsMockingLocation(true);
+  const selectedReviewIncident = useMemo(
+    () =>
+      pendingSubmission
+        ? incidents.find((incident) => incident.value === pendingSubmission.incidentId)
+        : undefined,
+    [incidents, pendingSubmission],
+  );
 
+  const selectedReviewRequestType = useMemo(
+    () =>
+      pendingSubmission
+        ? REQUEST_TYPE_OPTIONS.find((option) => option.value === pendingSubmission.requestType)
+        : undefined,
+    [pendingSubmission],
+  );
+
+  const reviewSpecialNeeds = parseSpecialNeeds(pendingSubmission?.specialNeeds);
+
+  const mockGpsLocation = () => {
     const lat = Number((5.6 + Math.random() * 14.1).toFixed(6));
     const lng = Number((97.3 + Math.random() * 8.2).toFixed(6));
 
     setValue('latitude', lat, { shouldDirty: true, shouldValidate: true });
     setValue('longitude', lng, { shouldDirty: true, shouldValidate: true });
-
-    window.setTimeout(() => setIsMockingLocation(false), 500);
   };
 
   const submitRequest = async (data: RescueRequestFormValues) => {
-    if (submitLockRef.current) return;
-    submitLockRef.current = true;
-    setIsConfirmSubmitting(true);
-    setIsValidationModalOpen(false);
-    setValidationIssues([]);
     setApiError(null);
-    setIsApiErrorModalOpen(false);
+    setIsConfirmSubmitting(true);
 
     try {
-      const key = generateIdempotencyKey();
-      let result;
-      let lastError: unknown;
-
-      for (let attempt = 1; attempt <= MAX_CREATE_RETRIES; attempt += 1) {
-        try {
-          result = await createRescueRequest(data, key);
-          break;
-        } catch (err: unknown) {
-          lastError = err;
-
-          if (!isTransactionConflict(err) || attempt === MAX_CREATE_RETRIES) {
-            throw err;
-          }
-
-          await wait(attempt * 300);
-        }
-      }
-
-      if (!result) {
-        throw lastError ?? new Error('ไม่สามารถบันทึกคำขอได้');
-      }
-
+      const result = await createRescueRequest(data, generateIdempotencyKey());
       onSuccess({
         requestId: result.requestId,
         trackingCode: result.trackingCode,
         status: result.status,
         submittedAt: result.submittedAt,
       });
-    } catch (err: unknown) {
-      setApiError(toDisplayApiError(err));
-      setIsApiErrorModalOpen(true);
-      setIsReviewModalOpen(false);
+    } catch (error: unknown) {
+      setApiError((error as { message?: string })?.message ?? 'ส่งคำขอไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      setIsReviewOpen(false);
     } finally {
-      submitLockRef.current = false;
       setIsConfirmSubmitting(false);
     }
   };
 
   const onSubmit = (data: RescueRequestFormValues) => {
     setPendingSubmission(data);
-    setIsReviewModalOpen(true);
-  };
-
-  const selectedReviewIncident = pendingSubmission
-    ? incidents.find((incident) => incident.value === pendingSubmission.incidentId)
-    : undefined;
-  const selectedReviewRequestType = pendingSubmission
-    ? REQUEST_TYPE_OPTIONS.find((option) => option.value === pendingSubmission.requestType)
-    : undefined;
-  const reviewSpecialNeeds = parseSpecialNeeds(pendingSubmission?.specialNeeds);
-
-  const onInvalid = (formErrors: FieldErrors<RescueRequestFormValues>) => {
-    const issues = collectValidationIssues(formErrors);
-    const dedupedIssues = Array.from(
-      new Map(issues.map((issue) => [issue.field, issue])).values(),
-    );
-
-    setValidationIssues(dedupedIssues);
-    setIsValidationModalOpen(true);
-
-    const firstErrorField = dedupedIssues[0]?.field?.split('.')[0]?.replace(/\[\d+\]/g, '');
-    if (firstErrorField) {
-      setFocus(firstErrorField as keyof RescueRequestFormValues);
-    }
+    setIsReviewOpen(true);
   };
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-8">
-      {/* Info Banner */}
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/50 px-5 py-4">
-        <div className="flex items-start gap-3">
-          <Info size={20} className="mt-0.5 shrink-0 text-blue-600" />
-          <div>
-            <p className="text-sm font-bold text-blue-900">ระบุข้อมูลให้ครบถ้วนเพื่อความรวดเร็ว</p>
-            <p className="mt-1 text-sm text-blue-700 leading-relaxed">
-              การระบุตำแหน่งที่ชัดเจนและข้อมูลติดต่อที่ถูกต้อง จะช่วยให้ทีมเจ้าหน้าที่เข้าช่วยเหลือได้ตรงจุดและรวดเร็วที่สุด
-            </p>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+        {apiError && <ErrorAlert message={apiError} onRetry={() => setApiError(null)} />}
+
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex gap-3">
+            <Info size={20} className="mt-0.5 shrink-0 text-blue-700" />
+            <div>
+              <p className="text-sm font-black text-blue-900">
+                ระบุข้อมูลให้ครบถ้วนเพื่อให้ทีมช่วยเหลือไปถึงจุดเกิดเหตุได้เร็วขึ้น
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-6 text-blue-700">
+                ตำแหน่งที่ชัดเจน จำนวนผู้ประสบภัย และเบอร์ติดต่อที่ถูกต้อง ช่วยลดเวลาประสานงาน
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Section 1: Incident Info */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">1. ข้อมูลเหตุการณ์</h2>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Controller
-            name="incidentId"
-            control={control}
-            render={({ field }) => {
-              const selectedIncident = incidents.find((incident) => incident.value === field.value);
-              const canOpenIncidentDialog =
-                !isLoadingIncidents && !isIncidentsError && incidents.length > 0 && !isSubmitting;
-
-              return (
-                <div className="space-y-2 sm:col-span-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-sm font-semibold text-gray-800">
-                      เหตุการณ์ภัยพิบัติ <span className="text-red-500">*</span>
-                    </label>
-                    {isLoadingIncidents && (
-                      <span className="text-xs font-medium text-blue-600">กำลังโหลด...</span>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={!canOpenIncidentDialog}
-                    onClick={() => setIsIncidentDialogOpen(true)}
-                    className={`flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-all ${
-                      selectedIncident
-                        ? 'border-blue-300 bg-blue-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/50'
-                    } disabled:cursor-not-allowed disabled:opacity-60`}
-                  >
-                    <span className="flex min-w-0 items-start gap-3">
-                      <span
-                        className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-                          selectedIncident ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {selectedIncident ? <CheckCircle2 size={21} /> : <MapPin size={21} />}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-bold text-gray-900">
-                          {selectedIncident ? 'เลือกเหตุการณ์แล้ว' : 'กดเพื่อเลือกเหตุการณ์ภัยพิบัติ'}
-                        </span>
-                        <span className="mt-1 block whitespace-normal break-words text-sm leading-6 text-gray-600">
-                          {selectedIncident?.description ??
-                            (isLoadingIncidents
-                              ? 'กำลังโหลดรายการเหตุการณ์...'
-                              : 'เลือกจากรายการเหตุการณ์ที่ระบบเปิดให้แจ้งคำขอ')}
-                        </span>
-                      </span>
-                    </span>
-                    <ChevronDown size={20} className="shrink-0 text-gray-400" />
-                  </button>
-
-                  {isIncidentsError && (
-                    <p className="text-xs font-medium text-red-600">
-                      ไม่สามารถโหลดรายการเหตุการณ์ได้ กรุณาลองใหม่อีกครั้ง
-                    </p>
-                  )}
-                  {!isLoadingIncidents && !isIncidentsError && incidents.length === 0 && (
-                    <p className="text-xs font-medium text-amber-700">
-                      ยังไม่มีรายการเหตุการณ์ให้เลือก
-                    </p>
-                  )}
-                  {errors.incidentId?.message && (
-                    <p className="text-xs font-medium text-red-600">{errors.incidentId.message}</p>
-                  )}
-
-                  <Dialog
-                    isOpen={isIncidentDialogOpen}
-                    onClose={() => setIsIncidentDialogOpen(false)}
-                    size="xl"
-                    title="เลือกเหตุการณ์ภัยพิบัติ"
-                    description="เลือกรายการเหตุการณ์ที่ตรงกับพื้นที่หรือสถานการณ์ของคุณ"
-                  >
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <Search
-                          size={18}
-                          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                        />
-                        <input
-                          value={incidentSearch}
-                          onChange={(event) => setIncidentSearch(event.target.value)}
-                          placeholder="ค้นหาจากรายละเอียดเหตุการณ์..."
-                          className="h-11 w-full rounded-2xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm font-medium text-gray-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                        />
-                      </div>
-
-                      <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
-                        {filteredIncidents.map((incident) => {
-                          const selected = field.value === incident.value;
-
-                          return (
-                            <button
-                              key={incident.value}
-                              type="button"
-                              onClick={() => {
-                                field.onChange(incident.value);
-                                setIsIncidentDialogOpen(false);
-                                setIncidentSearch('');
-                              }}
-                              className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                                selected
-                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100'
-                                  : 'border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/50'
-                              }`}
-                            >
-                              <span
-                                className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                                  selected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
-                                }`}
-                              >
-                                {selected ? <CheckCircle2 size={20} /> : <MapPin size={20} />}
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block whitespace-normal break-words text-sm font-semibold leading-6 text-gray-900">
-                                  {incident.description}
-                                </span>
-                                {selected && (
-                                  <span className="mt-2 inline-flex rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white">
-                                    กำลังเลือกอยู่
-                                  </span>
-                                )}
-                              </span>
-                            </button>
-                          );
-                        })}
-
-                        {filteredIncidents.length === 0 && (
-                          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-                            <p className="text-sm font-bold text-gray-800">ไม่พบเหตุการณ์ที่ค้นหา</p>
-                            <p className="mt-1 text-sm text-gray-500">
-                              ลองใช้คำค้นอื่น หรือเลือกจากรายการทั้งหมด
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Dialog>
-                </div>
-              );
-            }}
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <SectionHeader
+            index="01"
+            title="ข้อมูลเหตุการณ์"
+            description="เลือกเหตุการณ์ภัยพิบัติและประเภทความช่วยเหลือที่ต้องการ"
+            icon={<FileText size={22} />}
           />
-          <Controller
-            name="requestType"
-            control={control}
-            render={({ field }) => (
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-semibold text-gray-800">
-                  ประเภทความช่วยเหลือที่ต้องการ <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {REQUEST_TYPE_OPTIONS.map((option) => {
-                    const selected = field.value === option.value;
-                    const ui = REQUEST_TYPE_UI[option.value];
-                    const Icon = ui.icon;
 
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={() => field.onChange(option.value)}
-                        className={`rounded-2xl border p-4 text-left transition-all ${
-                          selected ? ui.selectedClass : ui.idleClass
-                        } disabled:cursor-not-allowed disabled:opacity-60`}
-                      >
-                        <span className="flex items-start justify-between gap-3">
+          <div className="grid gap-4">
+            <Controller
+              name="incidentId"
+              control={control}
+              render={({ field }) => {
+                const selectedIncident = incidents.find((incident) => incident.value === field.value);
+                const canSelectIncident =
+                  !isLoadingIncidents && !isIncidentsError && incidents.length > 0;
+
+                return (
+                  <div>
+                    <label className="mb-2 block text-sm font-black text-slate-700">
+                      เหตุการณ์ภัยพิบัติ <span className="text-rose-500">*</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      disabled={!canSelectIncident}
+                      onClick={() => setIsIncidentDialogOpen(true)}
+                      className={`w-full rounded-2xl border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        selectedIncident
+                          ? 'border-cyan-500 bg-cyan-50'
+                          : 'border-amber-200 bg-amber-50 hover:bg-amber-100'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="flex min-w-0 items-start gap-3">
                           <span
-                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                              selected ? ui.iconSelectedClass : ui.iconIdleClass
+                            className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                              selectedIncident
+                                ? 'bg-cyan-300 text-slate-950'
+                                : 'bg-amber-200 text-slate-950'
                             }`}
                           >
-                            <Icon size={24} />
+                            {selectedIncident ? <CheckCircle2 size={22} /> : <MapPinned size={22} />}
                           </span>
-                          {selected && (
-                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-gray-800 shadow-sm">
-                              เลือกอยู่
+                          <span className="min-w-0">
+                            <span className="block text-sm font-black text-slate-950">
+                              {selectedIncident ? selectedIncident.label : 'ยังไม่ได้เลือกเหตุการณ์'}
                             </span>
+                            <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">
+                              {isLoadingIncidents
+                                ? 'กำลังโหลดเหตุการณ์...'
+                                : isIncidentsError
+                                  ? 'ไม่สามารถโหลดเหตุการณ์ได้'
+                                  : selectedIncident
+                                    ? selectedIncident.description
+                                    : 'กดเพื่อเปิดหน้าต่างเลือกเหตุการณ์ภัยพิบัติ'}
+                            </span>
+                          </span>
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-black ${
+                            selectedIncident
+                              ? 'border-cyan-200 bg-white text-cyan-700'
+                              : 'border-amber-300 bg-white text-amber-700'
+                          }`}
+                        >
+                          {selectedIncident ? 'เลือกแล้ว' : 'ต้องเลือก'}
+                        </span>
+                      </div>
+                    </button>
+
+                    {errors.incidentId?.message && (
+                      <p className="mt-2 text-sm font-semibold text-rose-600">
+                        {errors.incidentId.message}
+                      </p>
+                    )}
+
+                    <Dialog
+                      isOpen={isIncidentDialogOpen}
+                      onClose={() => setIsIncidentDialogOpen(false)}
+                      size="lg"
+                      title="เลือกเหตุการณ์ภัยพิบัติ"
+                      description="ค้นหาและเลือกเหตุการณ์ที่ตรงกับพื้นที่หรือสถานการณ์ของคุณ"
+                    >
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <Search
+                            size={18}
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                          />
+                          <input
+                            value={incidentSearch}
+                            onChange={(event) => setIncidentSearch(event.target.value)}
+                            placeholder="ค้นหาชื่อเหตุการณ์หรือรายละเอียด"
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-950 outline-none transition-colors focus:border-cyan-400 focus:bg-white"
+                          />
+                          {incidentSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setIncidentSearch('')}
+                              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-500"
+                              aria-label="ล้างคำค้นหา"
+                            >
+                              <X size={15} />
+                            </button>
                           )}
-                        </span>
-                        <span className="mt-4 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                          {option.value}
-                        </span>
-                        <span className="mt-1 block text-sm font-black leading-6 text-gray-950">
-                          {option.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+                        </div>
+
+                        <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
+                          {filteredIncidents.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm font-bold text-slate-500">
+                              ไม่พบเหตุการณ์ที่ตรงกับคำค้นหา
+                            </div>
+                          ) : (
+                            filteredIncidents.map((incident) => {
+                              const selected = field.value === incident.value;
+
+                              return (
+                                <button
+                                  key={incident.value}
+                                  type="button"
+                                  onClick={() => {
+                                    field.onChange(incident.value);
+                                    setIsIncidentDialogOpen(false);
+                                    setIncidentSearch('');
+                                  }}
+                                  className={`w-full rounded-2xl border p-4 text-left transition-colors ${
+                                    selected
+                                      ? 'border-cyan-500 bg-cyan-50'
+                                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <span
+                                      className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                        selected
+                                          ? 'bg-cyan-300 text-slate-950'
+                                          : 'bg-slate-100 text-slate-500'
+                                      }`}
+                                    >
+                                      {selected ? <CheckCircle2 size={20} /> : <MapPinned size={20} />}
+                                    </span>
+                                    <span>
+                                      <span className="block text-sm font-black text-slate-950">
+                                        {incident.label}
+                                      </span>
+                                      <span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">
+                                        {incident.description}
+                                      </span>
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </Dialog>
+                  </div>
+                );
+              }}
+            />
+
+            <Controller
+              name="requestType"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <label className="block text-sm font-black text-slate-700">
+                      ประเภทความช่วยเหลือ <span className="text-rose-500">*</span>
+                    </label>
+                    <span
+                      className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${
+                        selectedRequestTypeMeta
+                          ? selectedRequestTypeMeta.chip
+                          : 'border-amber-200 bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {selectedRequestTypeOption
+                        ? `กำลังเลือก: ${selectedRequestTypeOption.shortLabel}`
+                        : 'ยังไม่ได้เลือกประเภท'}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {REQUEST_TYPE_OPTIONS.map((option) => {
+                      const meta = REQUEST_TYPE_UI[option.value];
+                      const Icon = meta.icon;
+                      const selected = field.value === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => field.onChange(option.value)}
+                          aria-pressed={selected}
+                          className={`relative overflow-hidden rounded-2xl border p-4 text-left transition-colors active:scale-[0.99] ${
+                            selected ? meta.selected : meta.card
+                          }`}
+                        >
+                          {selected && (
+                            <span className={`absolute left-0 top-0 h-full w-2 ${meta.rail}`} />
+                          )}
+                          <div className="flex items-start justify-between gap-3 pl-1">
+                            <span className={`flex h-12 w-12 items-center justify-center rounded-xl ${meta.iconBox}`}>
+                              <Icon size={23} />
+                            </span>
+                            {selected && (
+                              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
+                                เลือกอยู่
+                              </span>
+                            )}
+                          </div>
+                          <span className="mt-4 block pl-1 text-base font-black text-slate-950">
+                            {option.shortLabel}
+                          </span>
+                          <span className="mt-1 block pl-1 text-xs font-semibold leading-5 text-slate-600">
+                            {meta.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {selectedRequestTypeOption && selectedRequestTypeMeta && (
+                    <div
+                      className={`mt-3 rounded-2xl border p-4 ${selectedRequestTypeMeta.chip}`}
+                    >
+                      <p className="text-xs font-black">ประเภทที่เลือก</p>
+                      <p className="mt-1 text-sm font-black text-slate-950">
+                        {selectedRequestTypeOption.label}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
+                        {selectedRequestTypeMeta.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {errors.requestType?.message && (
+                    <p className="mt-2 text-sm font-semibold text-rose-600">
+                      {errors.requestType.message}
+                    </p>
+                  )}
                 </div>
-                {errors.requestType?.message && (
-                  <p className="text-xs font-medium text-red-600">{errors.requestType.message}</p>
-                )}
-              </div>
-            )}
-          />
-          <div className="sm:col-span-2">
+              )}
+            />
+
             <Textarea
-              label="อธิบายสถานการณ์โดยละเอียด"
+              label="รายละเอียดสถานการณ์"
               required
-              placeholder="เช่น ระดับน้ำสูงประมาณ 1 เมตร, มีผู้ป่วยติดเตียงต้องการอพยพด่วน..."
+              placeholder="เช่น มีผู้ป่วยติดอยู่ในบ้าน น้ำท่วมสูง ต้องการยาและเรือช่วยเหลือ"
               {...register('description')}
               error={errors.description?.message}
-              rows={3}
+            />
+
+            <Input
+              label="จำนวนผู้ประสบภัย"
+              required
+              type="number"
+              min={1}
+              step={1}
+              {...register('peopleCount')}
+              error={errors.peopleCount?.message}
             />
           </div>
-          <Input
-            label="จำนวนผู้ประสบภัย (คน)"
-            required
-            type="number"
-            min={1}
-            {...register('peopleCount')}
-            error={errors.peopleCount?.message}
-          />
-        </div>
-      </section>
+        </section>
 
-      {/* Section 2: Location */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-2 gap-3">
-          <h2 className="text-lg font-bold text-gray-900">2. ตำแหน่งที่เกิดเหตุ</h2>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<LocateFixed size={16} />}
-            loading={isMockingLocation}
-            onClick={mockGpsLocation}
-            className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
-          >
-            {isMockingLocation ? 'กำลังค้นหาตำแหน่ง...' : 'ดึงตำแหน่ง GPS ปัจจุบัน (จำลอง)'}
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Input
-            label="ละติจูด (Latitude)"
-            required
-            type="number"
-            step="any"
-            readOnly
-            className="bg-gray-50 text-gray-500"
-            placeholder="กดปุ่มเพื่อดึงตำแหน่งอัตโนมัติ"
-            {...register('latitude')}
-            error={errors.latitude?.message}
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <SectionHeader
+            index="02"
+            title="ตำแหน่งและพื้นที่"
+            description="ระบุพิกัดและจุดสังเกตเพื่อให้ทีมช่วยเหลือค้นหาได้ง่าย"
+            icon={<LocateFixed size={22} />}
           />
-          <Input
-            label="ลองจิจูด (Longitude)"
-            required
-            type="number"
-            step="any"
-            readOnly
-            className="bg-gray-50 text-gray-500"
-            placeholder="กดปุ่มเพื่อดึงตำแหน่งอัตโนมัติ"
-            {...register('longitude')}
-            error={errors.longitude?.message}
-          />
-          <div className="sm:col-span-2">
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={mockGpsLocation}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition-colors hover:bg-slate-800 sm:w-auto"
+              >
+                <LocateFixed size={17} />
+                เติมพิกัดตัวอย่าง
+              </button>
+            </div>
+
+            <Input
+              label="ละติจูด"
+              required
+              type="number"
+              step="any"
+              placeholder="เช่น 13.756331"
+              {...register('latitude')}
+              error={errors.latitude?.message}
+            />
+            <Input
+              label="ลองจิจูด"
+              required
+              type="number"
+              step="any"
+              placeholder="เช่น 100.501762"
+              {...register('longitude')}
+              error={errors.longitude?.message}
+            />
             <Textarea
-              label="จุดสังเกตเพิ่มเติม (ถ้ามี)"
-              placeholder="เช่น บ้านสองชั้นสีฟ้า ตรงข้ามวัด..."
+              label="จุดสังเกตเพิ่มเติม"
+              placeholder="เช่น บ้านหลังคาสีฟ้า ใกล้วัด หรือหน้าปากซอย"
+              className="sm:col-span-2"
               {...register('locationDetails')}
               error={errors.locationDetails?.message}
-              rows={2}
+            />
+            <Input
+              label="ที่อยู่"
+              placeholder="บ้านเลขที่ ถนน หรือชื่อชุมชน"
+              className="sm:col-span-2"
+              {...register('addressLine')}
+              error={errors.addressLine?.message}
+            />
+            <Input
+              label="ตำบล / แขวง"
+              placeholder="เช่น สีลม"
+              {...register('subdistrict')}
+              error={errors.subdistrict?.message}
+            />
+            <Input
+              label="อำเภอ / เขต"
+              placeholder="เช่น บางรัก"
+              {...register('district')}
+              error={errors.district?.message}
+            />
+            <Input
+              label="จังหวัด"
+              placeholder="เช่น กรุงเทพมหานคร"
+              className="sm:col-span-2"
+              {...register('province')}
+              error={errors.province?.message}
             />
           </div>
-          <Input
-            label="ที่อยู่ / หมู่บ้าน / ซอย"
-            placeholder="เช่น 123/45 ซอยสุขใจ ถนนร่วมใจ..."
-            {...register('addressLine')}
-            error={errors.addressLine?.message}
-          />
-          <Input
-            label="ตำบล / แขวง"
-            placeholder="เช่น สีลม"
-            {...register('subdistrict')}
-            error={errors.subdistrict?.message}
-          />
-          <Input
-            label="อำเภอ / เขต"
-            placeholder="เช่น บางรัก"
-            {...register('district')}
-            error={errors.district?.message}
-          />
-          <Input
-            label="จังหวัด"
-            placeholder="เช่น กรุงเทพมหานคร"
-            {...register('province')}
-            error={errors.province?.message}
-          />
-        </div>
-      </section>
+        </section>
 
-      {/* Section 3: Contact & Special Needs */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-2">3. ข้อมูลผู้ติดต่อ</h2>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Input
-            label="ชื่อ-นามสกุล ผู้ติดต่อ"
-            required
-            placeholder="เช่น พรทิพย์ สุขใจ"
-            {...register('contactName')}
-            error={errors.contactName?.message}
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <SectionHeader
+            index="03"
+            title="ข้อมูลติดต่อ"
+            description="ข้อมูลนี้ใช้สำหรับประสานงานกับทีมช่วยเหลือเท่านั้น"
+            icon={<UserRound size={22} />}
           />
-          <Input
-            label="เบอร์โทรศัพท์ที่ติดต่อได้"
-            required
-            type="tel"
-            placeholder="เช่น 0812345678"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            maxLength={10}
-            {...register('contactPhone', {
-              onChange: (event) => {
-                const digits = String(event.target.value ?? '')
-                  .replace(/\D/g, '')
-                  .slice(0, 10);
-                event.target.value = digits;
-              },
-            })}
-            error={errors.contactPhone?.message}
-          />
-          <div className="sm:col-span-2 mt-2">
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="ชื่อ-นามสกุล ผู้ติดต่อ"
+              required
+              placeholder="เช่น พรทิพย์ สุขใจ"
+              {...register('contactName')}
+              error={errors.contactName?.message}
+            />
+            <Input
+              label="เบอร์โทรศัพท์ที่ติดต่อได้"
+              required
+              type="tel"
+              placeholder="0812345678"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              maxLength={10}
+              {...register('contactPhone', {
+                onChange: (event) => {
+                  const digits = String(event.target.value ?? '')
+                    .replace(/\D/g, '')
+                    .slice(0, 10);
+                  event.target.value = digits;
+                },
+              })}
+              error={errors.contactPhone?.message}
+            />
             <Controller
               name="specialNeeds"
               control={control}
               render={({ field }) => (
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-700">ความต้องการพิเศษ (ถ้ามี)</label>
-                  <SpecialNeedsInput
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    ความต้องการพิเศษ (ถ้ามี)
+                  </label>
+                  <SpecialNeedsInput value={field.value} onChange={field.onChange} />
                   {errors.specialNeeds && (
-                    <p className="text-sm text-red-500">{errors.specialNeeds.message}</p>
+                    <p className="mt-1 text-sm font-semibold text-rose-600">
+                      {errors.specialNeeds.message}
+                    </p>
                   )}
                 </div>
               )}
             />
           </div>
+        </section>
+
+        <input type="hidden" value="WEB" {...register('sourceChannel')} />
+
+        <div className="border-t border-slate-200 pt-5">
+          <Button
+            type="submit"
+            className="h-12 w-full rounded-2xl bg-slate-950 px-8 font-black text-white hover:bg-slate-800"
+            size="lg"
+            loading={isSubmitting || isConfirmSubmitting}
+            disabled={isSubmitting || isConfirmSubmitting}
+            leftIcon={!isSubmitting && !isConfirmSubmitting ? <Send size={18} /> : undefined}
+          >
+            {isSubmitting || isConfirmSubmitting ? 'กำลังส่งคำขอ...' : 'ตรวจสอบก่อนส่งคำขอ'}
+          </Button>
         </div>
-      </section>
-
-      <input type="hidden" value="WEB" {...register('sourceChannel')} />
-
-      <div className="pt-6 border-t border-gray-100 flex justify-end">
-        <Button
-          type="submit"
-          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 shadow-sm transition-all"
-          size="lg"
-          loading={isSubmitting || isConfirmSubmitting}
-          disabled={isSubmitting || isConfirmSubmitting}
-        >
-          {isSubmitting || isConfirmSubmitting
-            ? 'กำลังส่งคำขอ...'
-            : 'ตรวจสอบก่อนส่งคำขอ'}
-        </Button>
-      </div>
       </form>
 
       <Dialog
-        isOpen={isReviewModalOpen}
+        isOpen={isReviewOpen}
         onClose={() => {
           if (isConfirmSubmitting) return;
-          setIsReviewModalOpen(false);
+          setIsReviewOpen(false);
         }}
         size="lg"
         title="ตรวจสอบข้อมูลก่อนส่ง"
@@ -772,277 +670,113 @@ export function RescueRequestForm({ initialRequestType, onSuccess }: RescueReque
       >
         {pendingSubmission && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
-                เหตุการณ์ภัยพิบัติ
-              </p>
-              <p className="mt-1 whitespace-normal break-words text-sm font-semibold leading-6 text-blue-950">
+            <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+              <p className="text-xs font-black text-cyan-700">เหตุการณ์ภัยพิบัติ</p>
+              <p className="mt-1 text-sm font-bold leading-6 text-cyan-950">
                 {selectedReviewIncident?.description ?? pendingSubmission.incidentId}
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">ประเภทความช่วยเหลือ</p>
-                <p className="mt-1 text-sm font-bold text-gray-950">
-                  {selectedReviewRequestType?.label ?? pendingSubmission.requestType}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">จำนวนผู้ประสบภัย</p>
-                <p className="mt-1 text-sm font-bold text-gray-950">
-                  {pendingSubmission.peopleCount.toLocaleString('th-TH')} คน
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">ผู้ติดต่อ</p>
-                <p className="mt-1 text-sm font-bold text-gray-950">
-                  {pendingSubmission.contactName}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">เบอร์โทรศัพท์</p>
-                <p className="mt-1 text-sm font-bold text-gray-950">
-                  {pendingSubmission.contactPhone}
-                </p>
-              </div>
+              <ReviewBlock label="ประเภทความช่วยเหลือ">
+                {selectedReviewRequestType?.label ?? pendingSubmission.requestType}
+              </ReviewBlock>
+              <ReviewBlock label="จำนวนผู้ประสบภัย">
+                {pendingSubmission.peopleCount.toLocaleString('th-TH')} คน
+              </ReviewBlock>
+              <ReviewBlock label="ผู้ติดต่อ">{pendingSubmission.contactName}</ReviewBlock>
+              <ReviewBlock label="เบอร์โทรศัพท์">{pendingSubmission.contactPhone}</ReviewBlock>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold text-gray-500">รายละเอียดสถานการณ์</p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
-                {pendingSubmission.description}
-              </p>
-            </div>
+            <ReviewBlock label="รายละเอียดสถานการณ์">
+              <span className="whitespace-pre-wrap">{pendingSubmission.description}</span>
+            </ReviewBlock>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <p className="text-xs font-bold text-gray-500">ตำแหน่งและที่อยู่</p>
-              <div className="mt-2 space-y-1 text-sm leading-6 text-gray-900">
+            <ReviewBlock label="ตำแหน่งและที่อยู่">
+              <div className="space-y-1">
                 <p>
                   พิกัด: {pendingSubmission.latitude}, {pendingSubmission.longitude}
                 </p>
                 {pendingSubmission.locationDetails && (
                   <p>จุดสังเกต: {pendingSubmission.locationDetails}</p>
                 )}
-                <p className="break-words">
-                  {[pendingSubmission.addressLine, pendingSubmission.subdistrict, pendingSubmission.district, pendingSubmission.province]
+                <p>
+                  {[
+                    pendingSubmission.addressLine,
+                    pendingSubmission.subdistrict,
+                    pendingSubmission.district,
+                    pendingSubmission.province,
+                  ]
                     .filter(Boolean)
-                    .join(' ')}
+                    .join(' ') || '-'}
                 </p>
               </div>
-            </div>
+            </ReviewBlock>
 
             {pendingSubmission.specialNeeds && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">ความต้องการพิเศษ</p>
+              <ReviewBlock label="ความต้องการพิเศษ">
                 {reviewSpecialNeeds.mode === 'chip' && reviewSpecialNeeds.items?.length ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {reviewSpecialNeeds.items.map((item) => (
                       <span
                         key={item}
-                        className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700"
+                        className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700"
                       >
                         {item}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
-                    {reviewSpecialNeeds.text || pendingSubmission.specialNeeds}
-                  </p>
+                  reviewSpecialNeeds.text || pendingSubmission.specialNeeds
                 )}
-              </div>
+              </ReviewBlock>
             )}
 
-            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-              <Button
+            <div className="grid gap-3 pt-2 sm:grid-cols-2">
+              <button
                 type="button"
-                variant="outline"
                 disabled={isConfirmSubmitting}
-                onClick={() => setIsReviewModalOpen(false)}
-                className="w-full sm:w-auto"
+                onClick={() => setIsReviewOpen(false)}
+                className="flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
               >
                 กลับไปแก้ไข
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="primary"
-                loading={isConfirmSubmitting}
                 disabled={isConfirmSubmitting}
                 onClick={() => void submitRequest(pendingSubmission)}
-                className="w-full sm:w-auto"
+                className="flex h-11 items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
               >
-                ยืนยันส่งคำขอ
-              </Button>
+                {isConfirmSubmitting ? 'กำลังส่งคำขอ...' : 'ยืนยันส่งคำขอ'}
+              </button>
             </div>
           </div>
         )}
       </Dialog>
 
-      <Dialog
-        isOpen={isApiErrorModalOpen}
-        onClose={() => setIsApiErrorModalOpen(false)}
-        size="lg"
-        title="ส่งคำขอไม่สำเร็จ"
-        description="ระบบปลายทางแจ้งข้อผิดพลาด กรุณาตรวจสอบรายละเอียดด้านล่าง"
-      >
-        {apiError && (
+      {apiError && (
+        <Dialog
+          isOpen={!!apiError}
+          onClose={() => setApiError(null)}
+          size="md"
+          title="ส่งคำขอไม่สำเร็จ"
+          description="กรุณาตรวจสอบข้อมูลและลองส่งอีกครั้ง"
+        >
           <div className="space-y-4">
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white">
-                  <FileWarning size={22} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {apiError.status && (
-                      <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-black text-white">
-                        HTTP {apiError.status}
-                      </span>
-                    )}
-                    {apiError.errorCode && (
-                      <span className="rounded-full border border-red-200 bg-white px-2.5 py-1 text-xs font-black text-red-700">
-                        {apiError.errorCode}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-3 whitespace-normal break-words text-base font-black text-red-950">
-                    {apiError.message}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-red-700">
-                    {getErrorCodeDescription(apiError.status, apiError.errorCode)}
-                  </p>
-                </div>
-              </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+              <AlertCircle size={20} className="mt-0.5 shrink-0 text-rose-600" />
+              <p className="text-sm font-semibold leading-6 text-rose-800">{apiError}</p>
             </div>
-
-            {apiError.details.length > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <p className="text-sm font-black text-amber-950">รายละเอียดที่ต้องแก้ไข</p>
-                <div className="mt-3 space-y-2">
-                  {apiError.details.map((detail, index) => (
-                    <div
-                      key={`${String(detail.field ?? 'detail')}-${index}`}
-                      className="rounded-xl border border-amber-200 bg-white px-3 py-2"
-                    >
-                      <p className="text-xs font-bold text-amber-700">
-                        {detail.field ? getFieldLabel(String(detail.field)) : `รายการที่ ${index + 1}`}
-                      </p>
-                      <p className="mt-1 break-words text-sm font-semibold leading-6 text-gray-900">
-                        {detail.issue
-                          ? String(detail.issue)
-                          : JSON.stringify(detail)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">Path / Method</p>
-                <p className="mt-1 break-words text-sm font-semibold text-gray-950">
-                  {apiError.method ?? '-'} {apiError.path ?? '-'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="flex items-center gap-1 text-xs font-bold text-gray-500">
-                  <Clock size={13} />
-                  Timestamp
-                </p>
-                <p className="mt-1 break-words text-sm font-semibold text-gray-950">
-                  {apiError.timestamp ?? '-'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">Trace ID</p>
-                <p className="mt-1 break-all text-sm font-semibold text-gray-950">
-                  {apiError.traceId ?? '-'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-bold text-gray-500">Request ID</p>
-                <p className="mt-1 break-all text-sm font-semibold text-gray-950">
-                  {apiError.requestId ?? '-'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsApiErrorModalOpen(false);
-                  setIsReviewModalOpen(true);
-                }}
-                className="w-full sm:w-auto"
-              >
-                กลับไปตรวจสอบรายการ
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => setIsApiErrorModalOpen(false)}
-                className="w-full sm:w-auto"
-              >
-                แก้ไขข้อมูลในฟอร์ม
-              </Button>
-            </div>
-          </div>
-        )}
-      </Dialog>
-
-      <Dialog
-        isOpen={isValidationModalOpen}
-        onClose={() => setIsValidationModalOpen(false)}
-        size="md"
-        title="กรุณาตรวจสอบข้อมูล"
-        description="ยังมีข้อมูลบางส่วนที่ต้องกรอกหรือแก้ไขก่อนส่งคำขอ"
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white">
-              <AlertCircle size={20} />
-            </span>
-            <div>
-              <p className="font-bold">
-                พบข้อมูลที่ต้องแก้ไข {validationIssues.length || 1} รายการ
-              </p>
-              <p className="mt-1 leading-6 text-red-700">
-                กรุณาตรวจสอบรายการด้านล่าง แล้วกลับไปกรอกข้อมูลให้ครบถ้วน
-              </p>
-            </div>
-          </div>
-
-          <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
-            {validationIssues.length > 0 ? (
-              validationIssues.map((issue) => (
-                <div
-                  key={issue.field}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
-                >
-                  <p className="text-sm font-bold text-gray-950">{getFieldLabel(issue.field)}</p>
-                  <p className="mt-1 text-sm leading-6 text-red-600">{issue.message}</p>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-                <p className="text-sm text-gray-700">
-                  มีช่องข้อมูลที่ยังไม่ครบถ้วนหรือรูปแบบไม่ถูกต้อง
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="button" variant="primary" onClick={() => setIsValidationModalOpen(false)}>
+            <button
+              type="button"
+              onClick={() => setApiError(null)}
+              className="flex h-11 w-full items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition-colors hover:bg-slate-800"
+            >
               กลับไปแก้ไขข้อมูล
-            </Button>
+            </button>
           </div>
-        </div>
-      </Dialog>
+        </Dialog>
+      )}
     </>
   );
 }

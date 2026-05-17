@@ -1,4 +1,3 @@
-// src\components\ui\select.tsx
 'use client';
 
 import React from 'react';
@@ -38,12 +37,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label
-            htmlFor={selectId}
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
+          <label htmlFor={selectId} className="mb-1 block text-sm font-bold text-slate-700">
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="ml-1 text-rose-500">*</span>}
           </label>
         )}
         <select
@@ -54,15 +50,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             error ? `${selectId}-error` : helperText ? `${selectId}-helper` : undefined
           }
           className={cn(
-            'block w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900',
-            'transition-colors appearance-none',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500',
-            'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
+            'block w-full appearance-none rounded-xl border bg-white px-3 py-2 text-sm text-slate-900',
+            'transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100',
+            'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500',
             'bg-[url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3E%3Cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3E%3C/svg%3E")]',
             'bg-[position:right_0.5rem_center] bg-[size:1.25rem] bg-no-repeat pr-10',
-            error
-              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
-              : 'border-gray-300 hover:border-gray-400',
+            error ? 'border-rose-400' : 'border-slate-300 hover:border-slate-400',
             className,
           )}
           {...props}
@@ -79,12 +72,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <p id={`${selectId}-error`} className="mt-1 text-xs text-red-600">
+          <p id={`${selectId}-error`} className="mt-1 text-xs font-semibold text-rose-600">
             {error}
           </p>
         )}
         {!error && helperText && (
-          <p id={`${selectId}-helper`} className="mt-1 text-xs text-gray-500">
+          <p id={`${selectId}-helper`} className="mt-1 text-xs text-slate-500">
             {helperText}
           </p>
         )}
